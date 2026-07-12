@@ -94,7 +94,10 @@ adjust to your available time. **M0–M1 is what the `slice/` prototype foreshad
 ### M1 — Tactical core: plan-then-execute movement  · M  ← *vertical slice target*
 - Grid deck with walls; A* pathfinding; fog of war stub.
 - Select a soldier → draw/auto path → queue → **execute** → soldier walks it → **pause** anytime.
-- Multiple soldiers, per-unit order queues, synchronized "go".
+- Multiple soldiers, **individual** per-unit order queues, synchronized "go".
+- **Persistent orders/postures** from the start: a soldier holds its last standing order (continue
+  path / hold position / follow) until re-tasked, so re-pausing re-plans only the units that changed,
+  not all twelve. Orders are first-class serializable objects (this is also what save/replay needs).
 - **Playable:** move a squad room-to-room by planning and executing. *This is the core feel.*
   (`slice/index.html` is a dependency-free proof of exactly this.)
 
@@ -106,6 +109,9 @@ adjust to your available time. **M0–M1 is what the `slice/` prototype foreshad
 ### M3 — Orders depth & entries  · L
 - Action waypoints: **breach door**, frag/flash-through, stack-up, **overwatch** (facing cones),
   use item, drag downed ally. Quiet vs loud entry; stances.
+- **Standing orders** a unit holds until re-tasked (overwatch arc, guard point, hold fire/weapons
+  free, follow) + a command-bar "needs attention" list surfacing units worth re-planning. This is what
+  makes individual planning scale to a 12-soldier boarding action without micromanagement.
 - **Playable:** the two-door synchronized breach — the signature DK1 moment.
 
 ### M4 — Hull & venting  · L
@@ -132,6 +138,10 @@ adjust to your available time. **M0–M1 is what the `slice/` prototype foreshad
 - Four distinct enemy doctrines (Blackline overwatch-web, Combine systems/alarms, Drift hull-cutting
   chaos, Sodality fearless network), signature units, hackable systems, reinforcement/escalation AI.
 - Authored + **procedurally generated** deck plans; content pass on weapons/gear/specs.
+- **Detailed ship-plan overlay art** (DESIGN §8): the *Door Kickers* deck-schematic look in space —
+  full hull outlines, compartments, bulkheads, airlocks, consoles — layered over the existing tactical
+  grid and revealed by fog. Purely a render/content layer; the grid sim underneath is unchanged, so
+  this can land here (or slip to M10 polish) without touching gameplay systems.
 - **Playable:** each faction *feels* different to fight and demands different counters.
 
 ### M9 — Campaign, escalation & meta  · L
@@ -178,7 +188,7 @@ Determinism makes testing unusually tractable — lean into it:
 | Hull/venting physics is fun in theory, chaotic in practice | Med | Contain to grid-based, readable rules (pull toward breach for N ticks); telegraph heavily; make it a deliberate tactic, not random. |
 | Attrition economy too punishing or too soft | Med | Difficulty toggles + headless balance sims; tune upkeep/recruit costs late (M10). |
 | Perf with 12 friendlies + many enemies + fog + VFX | Med | Pixi batching; spatial partitioning for LOS; cap sim tick rate; profile early. |
-| UI complexity (12-unit console) | Med | Reuse the validated "1c CONSOLE" layout; build the sidebar/command-bar shell early against real sim state. |
+| UI complexity / micromanagement with 12 individually-planned soldiers | Med | **Persistent orders/postures** (units hold their last order until re-tasked) + a "needs attention" list so each pause re-plans only the 2–3 changed units; reuse the validated "1c CONSOLE" layout; build the sidebar/command-bar shell early against real sim state. |
 
 ---
 

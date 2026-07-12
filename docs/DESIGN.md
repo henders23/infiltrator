@@ -153,9 +153,24 @@ Real-time-with-pause. At any moment you **pause** (the default planning state), 
 - **Snap-pause options** (accessibility/difficulty): auto-pause on enemy spotted, on soldier down, on
   waypoint reached. Ironman disables generous auto-pause.
 
+**Individual planning + persistent orders (the key to commanding a dozen soldiers).** You plan each
+soldier individually — no forced fireteam grouping. What keeps that from becoming twelve-orders-per-
+pause busywork is that **orders and postures persist**: a soldier holds its last standing order until
+you change it. A man told to *overwatch this door* keeps watching it through every subsequent pause; a
+man mid-path keeps walking it; a man in *hold cover* stays put. So on a typical re-pause you touch only
+the two or three units whose situation actually changed and let the rest **remain postured as ordered**.
+
+- **Standing orders** a soldier holds until re-tasked: *hold position (facing)*, *overwatch (arc)*,
+  *guard/cover a point*, *follow ally*, *continue current path*, *hold fire / weapons free*.
+- The command bar surfaces **who needs attention** (contact, path complete, downed, panicking) so you
+  can find the units worth re-planning without scrubbing the whole roster.
+- Optional convenience later (not required for the core): save a stack of soldiers as an ad-hoc group
+  to issue a shared waypoint — but the atomic unit of command stays the individual.
+
 This is the *Door Kickers 1* fantasy: the joy is the **plan** — synchronizing a two-door breach so
 both rooms are flashed and cleared in the same second — and the horror is watching a good plan meet a
-detail you didn't know about.
+detail you didn't know about. Persistent postures are what let that scale from a 4-stack to a
+12-soldier boarding action without drowning you in micromanagement.
 
 ### 4.2 Information & stealth
 - **No intel by default.** You don't see through walls or doors. Fog of war is hard.
@@ -293,6 +308,13 @@ Challenge comes from **scarcity, imperfect information, and consequence**, not s
 
 - **Selected direction "1c CONSOLE":** persistent right sidebar (roster / selected-unit / event log),
   top command bar, deck-plan viewport. Scales cleanly to 12-soldier squads.
+- **Detailed ship-plan overlays (the map target).** The long-term visual goal is full, readable
+  **deck-plan art for whole ships and stations** — the *Door Kickers* deck-schematic look, in space:
+  hull outlines, compartment walls and bulkheads, doors and airlocks, consoles, cover, and the helm,
+  all as a legible top-down schematic overlay you plan on top of. Fog of war reveals it compartment by
+  compartment as the squad advances. Starts as authored decks; procedural generation (§ build plan)
+  extends it to varied hulls. The tactical grid underneath stays the same — this is a rendering/content
+  layer, so the sim is built grid-first and the detailed overlay art is layered on without changing it.
 - **Palette (already defined):** dark navy `#05080d`; cyan `#3fd0f0` (friendly/UI);
   orange-red `#ff8b3d` / `#ff5c33` (threat/alerts). Faction accents extend this (steel, amber, rust,
   violet).
