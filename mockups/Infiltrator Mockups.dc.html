@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#04070c; }
+  a { color:#3fd0f0; text-decoration:none; }
+  a:hover { color:#8ce4ff; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+</style>
+</helmet>
+
+<section style="display:flex; flex-direction:column; gap:36px; padding:70px 70px 10px; font-family:'Rajdhani',sans-serif;">
+
+  <div style="display:flex; flex-direction:column; gap:8px; max-width:1000px;">
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:4px; color:#63788c;">TURN 3 — DEFENSE MISSION · PREP PHASE</div>
+    <div style="font-size:44px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">INFILTRATOR — LINE HOLD</div>
+    <div style="font-size:19px; color:#8fa3b5; line-height:1.5;"><a href="#3a">3a</a> — defense variant of the <a href="#1c">1c</a> tactical screen. Enemies can cut through the hull anywhere; before breach you spend a limited stockpile (cover, AP mines, sentry, door sealers) to funnel them into a kill zone. Prep clock top right — commit early to bank time, or place everything and get overrun setting up.</div>
+  </div>
+
+  <div style="display:flex; gap:90px; flex-wrap:wrap; align-items:flex-start;">
+
+    <!-- ================= 3A — DEFENSE PREP ================= -->
+    <div id="3a" style="display:flex; flex-direction:column; gap:16px; flex:none;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <a href="#3a" style="display:flex; align-items:center; justify-content:center; width:52px; height:52px; border:2px solid #ff8b3d; color:#ff8b3d; font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600;">3A</a>
+        <div style="display:flex; flex-direction:column;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">DEFENSE — PREP PHASE</div>
+          <div style="font-size:15px; color:#8fa3b5;">M-115 Line Hold, Kovac Station ring 2. Cover placement active; two hull-cutting sites already detected.</div>
+        </div>
+      </div>
+
+      <div data-screen-label="3A Defense Prep" style="position:relative; width:1920px; height:1080px; background:#05080d; overflow:hidden; font-family:'Rajdhani',sans-serif; color:#c9d7e2; border:1px solid #16222f;">
+        <!-- top bar -->
+        <div style="position:absolute; left:0; right:0; top:0; height:64px; background:#080d14; border-bottom:1px solid #1d2f40; display:flex; align-items:center; gap:32px; padding:0 28px; z-index:5;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:5px; color:#e8f1f8;">INFILTRATOR</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#63788c;">DEFENSE — M-115 LINE HOLD // KOVAC STATION, RING 2</div>
+          <div style="flex:1;"></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#8fa3b5;">PREP PHASE</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; color:#ff8b3d; animation:blink 1.6s infinite;">BREACH IN −01:45</div>
+          <div style="height:38px; border:1px solid #3fd0f0; background:rgba(63,208,240,.16); display:flex; align-items:center; padding:0 16px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; letter-spacing:2px; color:#8ce4ff;">COMMENCE DEFENSE ▸</div>
+        </div>
+
+        <!-- map -->
+        <div style="position:absolute; left:0; top:64px; right:400px; bottom:0; overflow:hidden;">
+          <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(63,208,240,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(63,208,240,.04) 1px,transparent 1px); background-size:48px 48px;"></div>
+
+          <!-- station section hull -->
+          <div style="position:absolute; left:130px; top:140px; width:1300px; height:760px; border:3px solid #2c4257; background:#0a121b;"></div>
+          <!-- rooms -->
+          <div style="position:absolute; left:200px; top:180px; width:280px; height:280px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">DOCK A</div></div>
+          <div style="position:absolute; left:520px; top:180px; width:280px; height:280px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">STORAGE</div></div>
+          <div style="position:absolute; left:840px; top:180px; width:240px; height:280px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">MED</div></div>
+          <div style="position:absolute; left:200px; top:460px; width:880px; height:140px; background:#101b2a; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">PROMENADE</div></div>
+          <div style="position:absolute; left:200px; top:600px; width:280px; height:260px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">DOCK B</div></div>
+          <div style="position:absolute; left:520px; top:600px; width:280px; height:260px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">BARRACKS</div></div>
+          <div style="position:absolute; left:840px; top:600px; width:240px; height:260px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">LIFE SUPPORT</div></div>
+          <div style="position:absolute; left:1120px; top:340px; width:260px; height:380px; background:#0e1826; border:2px solid #3fd0f0;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8ce4ff;">REACTOR CONTROL</div></div>
+          <!-- objective -->
+          <div style="position:absolute; left:1236px; top:512px; width:26px; height:26px; border:2px solid #3fd0f0; transform:rotate(45deg); animation:blink 2s infinite;"></div>
+          <div style="position:absolute; left:1176px; top:552px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; letter-spacing:2px; color:#3fd0f0;">HOLD 10:00</div>
+
+          <!-- doors -->
+          <div style="position:absolute; left:320px; top:457px; width:60px; height:8px; background:#3fd0f0;"></div>
+          <div style="position:absolute; left:620px; top:457px; width:60px; height:8px; background:#3fd0f0;"></div>
+          <div style="position:absolute; left:320px; top:597px; width:60px; height:8px; background:#3fd0f0;"></div>
+          <div style="position:absolute; left:1117px; top:490px; width:8px; height:70px; background:#3fd0f0;"></div>
+          <!-- sealed doors (funnel) -->
+          <div style="position:absolute; left:920px; top:457px; width:60px; height:8px; background:#ff5c33;"></div>
+          <div style="position:absolute; left:906px; top:434px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:1px; color:#ff5c33;">SEALED</div>
+          <div style="position:absolute; left:620px; top:597px; width:60px; height:8px; background:#ff5c33;"></div>
+          <div style="position:absolute; left:606px; top:612px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:1px; color:#ff5c33;">SEALED</div>
+          <div style="position:absolute; left:920px; top:597px; width:60px; height:8px; background:#3fd0f0;"></div>
+
+          <!-- hull breach warnings -->
+          <div style="position:absolute; left:560px; top:130px; width:160px; height:12px; background:linear-gradient(90deg, transparent, rgba(255,92,51,.9), transparent); animation:blink 1s infinite;"></div>
+          <div style="position:absolute; left:548px; top:100px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#ff5c33; animation:blink 1s infinite;">▼ CUTTING — 00:41</div>
+          <div style="position:absolute; left:122px; top:640px; width:12px; height:160px; background:linear-gradient(180deg, transparent, rgba(255,92,51,.9), transparent); animation:blink 1.3s infinite;"></div>
+          <div style="position:absolute; left:60px; top:606px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#ff5c33; animation:blink 1.3s infinite;">CUTTING<br>— 01:12 ▶</div>
+          <div style="position:absolute; left:900px; top:898px; width:140px; height:12px; background:linear-gradient(90deg, transparent, rgba(255,139,61,.5), transparent); animation:blink 2.2s infinite;"></div>
+          <div style="position:absolute; left:892px; top:918px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#ff8b3d;">▲ HULL STRESS — POSSIBLE</div>
+          <div style="position:absolute; left:150px; top:158px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#41586e; letter-spacing:1px;">HULL — BREACH POSSIBLE ANYWHERE ON PERIMETER</div>
+
+          <!-- expected routes -->
+          <div style="position:absolute; left:640px; top:150px; width:0; height:300px; border-left:2px dashed rgba(255,92,51,.55);"></div>
+          <div style="position:absolute; left:640px; top:450px; width:180px; height:0; border-top:2px dashed rgba(255,92,51,.55);"></div>
+          <div style="position:absolute; left:140px; top:718px; width:180px; height:0; border-top:2px dashed rgba(255,92,51,.55);"></div>
+          <div style="position:absolute; left:318px; top:600px; width:0; height:118px; border-left:2px dashed rgba(255,92,51,.55);"></div>
+          <div style="position:absolute; left:318px; top:600px; width:400px; height:0; border-top:2px dashed rgba(255,92,51,.55); transform:rotate(-14deg); transform-origin:left center;"></div>
+
+          <!-- kill zone -->
+          <div style="position:absolute; left:700px; top:464px; width:380px; height:132px; background:rgba(63,208,240,.07); border:1px dashed rgba(63,208,240,.4);"></div>
+          <div style="position:absolute; left:756px; top:518px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#3fd0f0;">KILL ZONE — INTERLOCKING FIRE</div>
+
+          <!-- placed cover -->
+          <div style="position:absolute; left:1044px; top:480px; width:14px; height:56px; background:rgba(63,208,240,.25); border:2px solid #3fd0f0;"></div>
+          <div style="position:absolute; left:988px; top:540px; width:56px; height:14px; background:rgba(63,208,240,.25); border:2px solid #3fd0f0;"></div>
+          <div style="position:absolute; left:1064px; top:498px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#3fd0f0;">CVR</div>
+          <!-- ghost cover being placed -->
+          <div style="position:absolute; left:880px; top:476px; width:14px; height:56px; background:rgba(63,208,240,.1); border:2px dashed #8ce4ff; animation:blink 1.4s infinite;"></div>
+          <div style="position:absolute; left:866px; top:452px; width:44px; height:0; border-top:1px solid #8ce4ff;"></div>
+          <div style="position:absolute; left:902px; top:406px; background:rgba(7,12,18,.95); border:1px solid #3fd0f0; padding:8px 12px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#8ce4ff; z-index:2;">PLACE — DEPLOYABLE COVER 3/4<br><span style="color:#63788c;">R — ROTATE · ESC — CANCEL</span></div>
+
+          <!-- AP mines -->
+          <div style="position:absolute; left:600px; top:250px; width:14px; height:14px; background:#2a130c; border:2px solid #ff8b3d; transform:rotate(45deg);"></div>
+          <div style="position:absolute; left:578px; top:228px; width:62px; height:62px; border-radius:50%; border:1px dashed rgba(255,139,61,.45);"></div>
+          <div style="position:absolute; left:672px; top:330px; width:14px; height:14px; background:#2a130c; border:2px solid #ff8b3d; transform:rotate(45deg);"></div>
+          <div style="position:absolute; left:650px; top:308px; width:62px; height:62px; border-radius:50%; border:1px dashed rgba(255,139,61,.45);"></div>
+          <div style="position:absolute; left:290px; top:680px; width:14px; height:14px; background:#2a130c; border:2px solid #ff8b3d; transform:rotate(45deg);"></div>
+          <div style="position:absolute; left:268px; top:658px; width:62px; height:62px; border-radius:50%; border:1px dashed rgba(255,139,61,.45);"></div>
+          <div style="position:absolute; left:252px; top:740px; width:14px; height:14px; background:#2a130c; border:2px solid #ff8b3d; transform:rotate(45deg);"></div>
+          <div style="position:absolute; left:230px; top:718px; width:62px; height:62px; border-radius:50%; border:1px dashed rgba(255,139,61,.45);"></div>
+          <div style="position:absolute; left:624px; top:270px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#ff8b3d;">APM</div>
+
+          <!-- squad in position, cones facing threats -->
+          <div style="position:absolute; left:750px; top:490px; width:320px; height:100px; background:rgba(63,208,240,.06); clip-path:polygon(100% 50%, 0 0, 0 100%); transform:rotate(180deg);"></div>
+          <div style="position:absolute; left:1058px; top:508px; width:26px; height:26px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+          <div style="position:absolute; left:1048px; top:540px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#3fd0f0;">REYES</div>
+          <div style="position:absolute; left:1002px; top:556px; width:26px; height:26px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+          <div style="position:absolute; left:992px; top:588px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#3fd0f0;">VANCE</div>
+          <div style="position:absolute; left:1140px; top:470px; width:26px; height:26px; border-radius:50%; background:#123240; border:2px solid #3fd0f0; box-shadow:0 0 14px rgba(63,208,240,.7);"></div>
+          <div style="position:absolute; left:1122px; top:442px; width:44px; height:44px; border-radius:50%; border:2px dashed #3fd0f0; animation:blink 2.4s infinite;"></div>
+          <div style="position:absolute; left:1126px; top:502px; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#8ce4ff;">OKORO ◄</div>
+          <div style="position:absolute; left:560px; top:380px; width:26px; height:26px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+          <div style="position:absolute; left:552px; top:412px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#3fd0f0;">ASH</div>
+          <div style="position:absolute; left:586px; top:340px; width:120px; height:90px; background:rgba(63,208,240,.06); clip-path:polygon(0 100%, 100% 0, 0 0); transform:rotate(180deg);"></div>
+          <div style="position:absolute; left:886px; top:476px; width:26px; height:26px; border-radius:50%; background:#0e1826; border:2px solid #ff8b3d; box-shadow:0 0 10px rgba(255,139,61,.45);"></div>
+          <div style="position:absolute; left:856px; top:508px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#ff8b3d;">KOWALSKI ▸ PLACING</div>
+          <div style="position:absolute; left:1180px; top:620px; width:26px; height:26px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+          <div style="position:absolute; left:1170px; top:652px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#3fd0f0;">DUVAL</div>
+        </div>
+
+        <!-- right sidebar -->
+        <div style="position:absolute; right:0; top:64px; bottom:0; width:400px; background:#070c12; border-left:1px solid #1d2f40; display:flex; flex-direction:column; padding:20px; gap:14px;">
+          <div style="border:1px solid #57291d; background:rgba(255,92,51,.06); padding:14px 16px; display:flex; flex-direction:column; gap:6px;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:3px; color:#ff8b3d;">PREP PHASE — PLACEMENT ACTIVE</div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:28px; font-weight:600; color:#ff5c33; animation:blink 1.6s infinite;">−01:45</div>
+            <div style="font-size:14px; color:#8fa3b5; line-height:1.4;">Stockpile set by squad loadout. Unused prep time banks as an early-warning sensor bonus.</div>
+          </div>
+
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">DEFENSE STOCKPILE</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <sc-for list="{{ defenses }}" as="d" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:12px; border:1px solid {{ d.bd }}; background:{{ d.bg }}; padding:11px 14px;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; color:#3fd0f0; width:44px;">{{ d.k }}</div>
+                <div style="flex:1; font-size:17px; font-weight:600; letter-spacing:1px; color:#e8f1f8;">{{ d.n }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8fa3b5;">{{ d.q }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5; margin-top:4px;">FIRETEAM SABLE — 6/6</div>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <sc-for list="{{ squad }}" as="m" hint-placeholder-count="6">
+              <div style="display:flex; align-items:center; gap:12px; border:1px solid {{ m.bd }}; background:rgba(10,16,24,.9); padding:7px 12px;">
+                <div style="width:10px; height:10px; border-radius:50%; background:{{ m.hpc }}; flex:none;"></div>
+                <div style="width:96px; font-size:16px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">{{ m.cs }}</div>
+                <div style="flex:1; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#63788c;">{{ m.role }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#8fa3b5;">IN POSITION</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="flex:1; display:flex; flex-direction:column; gap:8px; border-top:1px solid #1d2f40; padding-top:12px; overflow:hidden;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">EVENT LOG</div>
+            <sc-for list="{{ defEvents }}" as="e" hint-placeholder-count="4">
+              <div style="display:flex; gap:12px; align-items:baseline;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#41586e; flex:none;">{{ e.t }}</div>
+                <div style="font-size:15px; color:#a9bccb; line-height:1.35;">{{ e.x }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="display:flex; flex-direction:column; gap:36px; padding:70px 70px 20px; font-family:'Rajdhani',sans-serif;">
+
+  <div style="display:flex; flex-direction:column; gap:8px; max-width:1000px;">
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:4px; color:#63788c;">TURN 2 — CONSOLE DIRECTION · FULL SCREEN SET</div>
+    <div style="font-size:44px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">INFILTRATOR — CAMPAIGN FLOW</div>
+    <div style="font-size:19px; color:#8fa3b5; line-height:1.5;">Built on the <a href="#1c">1c</a> CONSOLE language. The loop: <a href="#2a">2a</a> strategic sector map → <a href="#2b">2b</a> mission briefing → <a href="#2c">2c</a> loadout → deploy into the tactical screen. <a href="#2d">2d</a> barracks handles promotion between missions.</div>
+  </div>
+
+  <div style="display:flex; gap:90px; flex-wrap:wrap; align-items:flex-start; max-width:4020px;">
+
+    <!-- ================= 2A — STRATEGIC LAYER ================= -->
+    <div id="2a" style="display:flex; flex-direction:column; gap:16px; flex:none;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <a href="#2a" style="display:flex; align-items:center; justify-content:center; width:52px; height:52px; border:2px solid #3fd0f0; color:#3fd0f0; font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600;">2A</a>
+        <div style="display:flex; flex-direction:column;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">STRATEGIC LAYER</div>
+          <div style="font-size:15px; color:#8fa3b5;">Sector map. Contracts appear over time; strategic clock pauses like the tactical one.</div>
+        </div>
+      </div>
+
+      <div data-screen-label="2A Strategic Map" style="position:relative; width:1920px; height:1080px; background:#04070c; overflow:hidden; font-family:'Rajdhani',sans-serif; color:#c9d7e2; border:1px solid #16222f;">
+        <!-- top bar -->
+        <div style="position:absolute; left:0; right:0; top:0; height:64px; background:#080d14; border-bottom:1px solid #1d2f40; display:flex; align-items:center; gap:32px; padding:0 28px; z-index:3;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:5px; color:#e8f1f8;">INFILTRATOR</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#63788c;">CAMPAIGN — SECTOR MERIDIAN // VSS RESOLUTE</div>
+          <div style="flex:1;"></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; color:#8fa3b5;">REQ <span style="color:#3fd0f0;">2,450</span></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; color:#8fa3b5;">INTEL <span style="color:#3fd0f0;">38</span></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:18px; color:#8fa3b5;">DAY 127</div>
+          <div style="display:flex; gap:6px;">
+            <div style="width:44px; height:34px; border:1px solid #3fd0f0; background:rgba(63,208,240,.14); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:#3fd0f0;">II</div>
+            <div style="width:44px; height:34px; border:1px solid #243546; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:#8fa3b5;">1×</div>
+            <div style="width:44px; height:34px; border:1px solid #243546; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:#8fa3b5;">5×</div>
+          </div>
+        </div>
+
+        <!-- star map -->
+        <div style="position:absolute; left:0; top:64px; right:400px; bottom:0; overflow:hidden;">
+          <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(63,208,240,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(63,208,240,.035) 1px,transparent 1px); background-size:64px 64px;"></div>
+          <div style="position:absolute; left:214px; top:130px; width:2px; height:2px; border-radius:50%; background:rgba(255,255,255,.5);"></div>
+          <div style="position:absolute; left:520px; top:220px; width:2px; height:2px; border-radius:50%; background:rgba(255,255,255,.35);"></div>
+          <div style="position:absolute; left:940px; top:150px; width:3px; height:3px; border-radius:50%; background:rgba(255,255,255,.55);"></div>
+          <div style="position:absolute; left:1220px; top:420px; width:2px; height:2px; border-radius:50%; background:rgba(255,255,255,.4);"></div>
+          <div style="position:absolute; left:680px; top:640px; width:2px; height:2px; border-radius:50%; background:rgba(255,255,255,.45);"></div>
+          <div style="position:absolute; left:180px; top:520px; width:3px; height:3px; border-radius:50%; background:rgba(255,255,255,.3);"></div>
+          <div style="position:absolute; left:1380px; top:760px; width:2px; height:2px; border-radius:50%; background:rgba(255,255,255,.5);"></div>
+          <div style="position:absolute; left:880px; top:880px; width:2px; height:2px; border-radius:50%; background:rgba(255,255,255,.35);"></div>
+          <!-- lanes -->
+          <div style="position:absolute; left:300px; top:700px; width:284px; height:0; border-top:1px dashed #24405a; transform:rotate(-50.7deg); transform-origin:left center;"></div>
+          <div style="position:absolute; left:480px; top:480px; width:322px; height:0; border-top:1px dashed #24405a; transform:rotate(-29.7deg); transform-origin:left center;"></div>
+          <div style="position:absolute; left:760px; top:320px; width:546px; height:0; border-top:1px dashed #24405a; transform:rotate(-8.4deg); transform-origin:left center;"></div>
+          <div style="position:absolute; left:300px; top:700px; width:804px; height:0; border-top:1px dashed #24405a; transform:rotate(-5.7deg); transform-origin:left center;"></div>
+          <div style="position:absolute; left:760px; top:320px; width:453px; height:0; border-top:1px dashed #24405a; transform:rotate(41.4deg); transform-origin:left center;"></div>
+
+          <!-- MERIDIAN PRIME (home) -->
+          <div style="position:absolute; left:284px; top:684px; width:32px; height:32px; border-radius:50%; border:2px solid #3fd0f0; background:rgba(63,208,240,.18);"></div>
+          <div style="position:absolute; left:250px; top:724px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#8fa3b5;">MERIDIAN PRIME</div>
+          <div style="position:absolute; left:262px; top:744px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#3fd0f0;">FLEET ANCHOR</div>
+          <!-- TANNHAUSER DRIFT (assault) -->
+          <div style="position:absolute; left:466px; top:466px; width:28px; height:28px; border-radius:50%; border:2px solid #41586e; background:#0a121b;"></div>
+          <div style="position:absolute; left:469px; top:449px; width:16px; height:16px; background:#2a130c; border:2px solid #ff5c33; transform:rotate(45deg);"></div>
+          <div style="position:absolute; left:410px; top:504px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#8fa3b5;">TANNHAUSER DRIFT</div>
+          <div style="position:absolute; left:452px; top:524px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#ff5c33;">M-116 ASSAULT</div>
+          <!-- HELIOS GATE (story, selected) -->
+          <div style="position:absolute; left:722px; top:282px; width:76px; height:76px; border-radius:50%; border:2px dashed #3fd0f0; animation:blink 2.4s infinite;"></div>
+          <div style="position:absolute; left:746px; top:306px; width:28px; height:28px; border-radius:50%; border:2px solid #41586e; background:#0a121b;"></div>
+          <div style="position:absolute; left:749px; top:290px; width:18px; height:18px; border:2px solid #3fd0f0; background:rgba(63,208,240,.2); transform:rotate(45deg);"></div>
+          <div style="position:absolute; left:716px; top:368px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#e8f1f8;">HELIOS GATE</div>
+          <div style="position:absolute; left:710px; top:388px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#3fd0f0;">M-114 STORY ◄</div>
+          <!-- KOVAC STATION (defend) -->
+          <div style="position:absolute; left:1086px; top:606px; width:28px; height:28px; border-radius:50%; border:2px solid #41586e; background:#0a121b;"></div>
+          <div style="position:absolute; left:1091px; top:589px; width:14px; height:14px; border:2px solid #ff8b3d; background:rgba(255,139,61,.15);"></div>
+          <div style="position:absolute; left:1044px; top:644px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#8fa3b5;">KOVAC STATION</div>
+          <div style="position:absolute; left:1058px; top:664px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#ff8b3d;">M-115 DEFEND</div>
+          <!-- BLACKREACH -->
+          <div style="position:absolute; left:1288px; top:228px; width:24px; height:24px; border-radius:50%; border:2px dashed #2a3d52; background:transparent;"></div>
+          <div style="position:absolute; left:1258px; top:260px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#41586e;">BLACKREACH</div>
+          <div style="position:absolute; left:1266px; top:280px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#41586e;">UNCHARTED</div>
+          <!-- fleet -->
+          <div style="position:absolute; left:330px; top:660px; width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent; border-bottom:16px solid #3fd0f0; transform:rotate(35deg);"></div>
+          <div style="position:absolute; left:352px; top:648px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#3fd0f0;">VSS RESOLUTE</div>
+
+          <!-- ticker -->
+          <div style="position:absolute; left:24px; bottom:20px; display:flex; flex-direction:column; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:13px;">
+            <div style="color:#63788c;"><span style="color:#41586e;">D127</span> — Hegemony patrol entered Meridian sector</div>
+            <div style="color:#63788c;"><span style="color:#41586e;">D126</span> — Supply convoy docked at Kovac Station</div>
+          </div>
+        </div>
+
+        <!-- right sidebar: contract detail -->
+        <div style="position:absolute; right:0; top:64px; bottom:0; width:400px; background:#070c12; border-left:1px solid #1d2f40; display:flex; flex-direction:column; padding:20px; gap:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">CONTRACT DETAIL</div>
+          <div style="border:1px solid #3fd0f0; background:rgba(63,208,240,.06); padding:16px; display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size:24px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">CERBERUS KEY</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#3fd0f0; border:1px solid #1d5a6b; padding:4px 8px;">STORY</div>
+            </div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c;">M-114 // HELIOS GATE // BOARDING ASSAULT</div>
+            <div style="font-size:16px; color:#a9bccb; line-height:1.45;">Hegemony marines seized the survey frigate CSV Kestrel. She jumps in 09:14 — board her, fight to the bridge, take the helm.</div>
+            <div style="display:flex; justify-content:space-between;"><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#8fa3b5;">THREAT</div><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#ff5c33;">HIGH</div></div>
+            <div style="display:flex; justify-content:space-between;"><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#8fa3b5;">HOSTILES</div><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#c9d7e2;">EST 12–18</div></div>
+            <div style="display:flex; justify-content:space-between;"><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#8fa3b5;">SQUAD</div><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#c9d7e2;">6 SLOTS</div></div>
+            <div style="display:flex; justify-content:space-between;"><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#8fa3b5;">REWARD</div><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#3fd0f0;">REQ +800 · INTEL +12</div></div>
+            <div style="display:flex; justify-content:space-between;"><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#8fa3b5;">WINDOW</div><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#ff8b3d; animation:blink 2s infinite;">09:14:22</div></div>
+            <div style="display:flex; gap:8px; margin-top:4px;">
+              <div style="flex:1; height:44px; border:1px solid #243546; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#8fa3b5;">BRIEFING</div>
+              <div style="flex:1; height:44px; border:1px solid #3fd0f0; background:rgba(63,208,240,.16); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; letter-spacing:2px; color:#8ce4ff;">DEPLOY ▸</div>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5; margin-top:6px;">ACTIVE CONTRACTS</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <sc-for list="{{ missions }}" as="ms" hint-placeholder-count="3">
+              <div style="display:flex; align-items:center; gap:12px; border:1px solid {{ ms.bd }}; background:rgba(10,16,24,.9); padding:10px 12px;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px; color:{{ ms.tc }}; border:1px solid #243546; padding:3px 6px; width:52px; text-align:center; flex:none;">{{ ms.type }}</div>
+                <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+                  <div style="font-size:16px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">{{ ms.name }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#63788c;">{{ ms.code }} // {{ ms.sys }}</div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:{{ ms.thc }};">{{ ms.threat }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#63788c;">{{ ms.rew }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="border-top:1px solid #1d2f40; padding-top:12px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c; line-height:1.6;">FIRETEAM SABLE — 6/6 READY<br>2 WOUNDED IN SICKBAY · 2 IN TRAINING</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 2B — MISSION BRIEFING ================= -->
+    <div id="2b" style="display:flex; flex-direction:column; gap:16px; flex:none;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <a href="#2b" style="display:flex; align-items:center; justify-content:center; width:52px; height:52px; border:2px solid #3fd0f0; color:#3fd0f0; font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600;">2B</a>
+        <div style="display:flex; flex-direction:column;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">MISSION BRIEFING</div>
+          <div style="font-size:15px; color:#8fa3b5;">Sitrep, intel and entry-point selection — where you commit to an approach.</div>
+        </div>
+      </div>
+
+      <div data-screen-label="2B Mission Briefing" style="position:relative; width:1920px; height:1080px; background:#05080d; overflow:hidden; font-family:'Rajdhani',sans-serif; color:#c9d7e2; border:1px solid #16222f;">
+        <div style="position:absolute; left:0; right:0; top:0; height:64px; background:#080d14; border-bottom:1px solid #1d2f40; display:flex; align-items:center; gap:32px; padding:0 28px; z-index:3;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:5px; color:#e8f1f8;">INFILTRATOR</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#63788c;">BRIEFING — M-114 CERBERUS KEY // CSV KESTREL</div>
+          <div style="flex:1;"></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; color:#ff8b3d; animation:blink 2s infinite;">JUMP WINDOW 09:14:22</div>
+        </div>
+
+        <!-- left: sitrep -->
+        <div style="position:absolute; left:0; top:64px; bottom:0; width:520px; background:#070c12; border-right:1px solid #1d2f40; padding:24px; display:flex; flex-direction:column; gap:18px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">SITREP</div>
+          <div style="font-size:18px; color:#a9bccb; line-height:1.55;">Hegemony boarding party seized the survey frigate CSV Kestrel at Helios Gate. Skeleton crew holding out in engineering. She jumps in 09:14 — board her, retake the bridge, bring her home.</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5; margin-top:6px;">OBJECTIVES</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; align-items:center; gap:10px;"><div style="width:14px; height:14px; border:2px solid #3fd0f0; flex:none;"></div><div style="font-size:17px;">Breach and board the Kestrel</div></div>
+            <div style="display:flex; align-items:center; gap:10px;"><div style="width:14px; height:14px; border:2px solid #3fd0f0; flex:none;"></div><div style="font-size:17px;">Reach the bridge</div></div>
+            <div style="display:flex; align-items:center; gap:10px;"><div style="width:14px; height:14px; border:2px solid #3fd0f0; flex:none;"></div><div style="font-size:17px;">Secure helm controls</div></div>
+            <div style="display:flex; align-items:center; gap:10px;"><div style="width:14px; height:14px; border:2px solid #ff8b3d; flex:none;"></div><div style="font-size:17px; color:#ff8b3d;">Max casualties: 2</div></div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5; margin-top:6px;">INTEL</div>
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:16px; color:#a9bccb; line-height:1.45;">
+            <div>▸ Bridge blast door sealed — breach charge or engineering override</div>
+            <div>▸ Hostiles est. 12–18, vac-rated armor</div>
+            <div>▸ Armory lockdown active — hostile resupply unlikely</div>
+          </div>
+          <div style="border:1px solid #57291d; background:rgba(255,92,51,.06); padding:12px 14px; margin-top:6px;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#ff5c33;">ROE — HULL RISK</div>
+            <div style="font-size:15px; color:#c9d7e2; margin-top:6px; line-height:1.4;">Gauss and SAW fire risks hull breach in outer-ring compartments. Vent warnings will trigger.</div>
+          </div>
+        </div>
+
+        <!-- center: entry select -->
+        <div style="position:absolute; left:520px; top:64px; right:400px; bottom:0;">
+          <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(63,208,240,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(63,208,240,.04) 1px,transparent 1px); background-size:48px 48px;"></div>
+          <div style="position:absolute; left:40px; top:28px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">SELECT ENTRY POINT — CSV KESTREL, DECK 2</div>
+          <!-- mini plan -->
+          <div style="position:absolute; left:60px; top:90px; width:880px; height:440px;">
+            <div style="position:absolute; left:0; top:0; width:880px; height:400px; border:3px solid #2c4257; border-radius:12px 140px 140px 12px; background:#0a121b;"></div>
+            <div style="position:absolute; left:30px; top:30px; width:200px; height:150px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:6px; left:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#63788c;">ENGINEERING</div></div>
+            <div style="position:absolute; left:30px; top:220px; width:200px; height:150px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:6px; left:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#63788c;">CARGO</div></div>
+            <div style="position:absolute; left:260px; top:170px; width:420px; height:60px; background:#101b2a; border:2px solid #33495e;"></div>
+            <div style="position:absolute; left:300px; top:30px; width:160px; height:140px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:6px; left:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#63788c;">MED</div></div>
+            <div style="position:absolute; left:300px; top:230px; width:160px; height:140px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:6px; left:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#63788c;">CREW</div></div>
+            <div style="position:absolute; left:490px; top:30px; width:160px; height:140px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:6px; left:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#63788c;">ARMORY</div></div>
+            <div style="position:absolute; left:700px; top:110px; width:150px; height:180px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:6px; left:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#63788c;">BRIDGE</div></div>
+            <div style="position:absolute; left:748px; top:186px; width:22px; height:22px; border:2px solid #3fd0f0; transform:rotate(45deg); animation:blink 2s infinite;"></div>
+            <!-- entry markers -->
+            <div style="position:absolute; left:80px; top:390px; width:26px; height:26px; border-radius:50%; border:3px solid #3fd0f0; background:rgba(63,208,240,.2); animation:blink 2.4s infinite;"></div>
+            <div style="position:absolute; left:52px; top:426px; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:#3fd0f0;">AIRLOCK 2 ◄</div>
+            <div style="position:absolute; left:368px; top:-14px; width:22px; height:22px; border-radius:50%; border:2px solid #41586e; background:#0a121b;"></div>
+            <div style="position:absolute; left:322px; top:-40px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c;">DORSAL HATCH</div>
+            <div style="position:absolute; left:16px; top:96px; width:22px; height:22px; border-radius:50%; border:2px solid #41586e; background:#0a121b;"></div>
+            <div style="position:absolute; left:-8px; top:70px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c;">ENG VENT</div>
+          </div>
+          <!-- entry option cards -->
+          <div style="position:absolute; left:60px; right:60px; bottom:40px; display:flex; gap:14px;">
+            <div style="flex:1; border:1px solid #3fd0f0; background:rgba(63,208,240,.08); padding:16px; display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; justify-content:space-between;"><div style="font-size:19px; font-weight:700; letter-spacing:1px; color:#8ce4ff;">AIRLOCK 2</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#3fd0f0;">SELECTED</div></div>
+              <div style="font-size:15px; color:#a9bccb; line-height:1.4;">Cargo approach. Long corridor push, good cover, expected contact early.</div>
+            </div>
+            <div style="flex:1; border:1px solid #243546; background:rgba(10,16,24,.9); padding:16px; display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; justify-content:space-between;"><div style="font-size:19px; font-weight:700; letter-spacing:1px; color:#c9d7e2;">DORSAL HATCH</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#ff8b3d;">LOUD</div></div>
+              <div style="font-size:15px; color:#8fa3b5; line-height:1.4;">Drops into crew quarters. Fast route to bridge, alerts the whole deck.</div>
+            </div>
+            <div style="flex:1; border:1px solid #243546; background:rgba(10,16,24,.9); padding:16px; display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; justify-content:space-between;"><div style="font-size:19px; font-weight:700; letter-spacing:1px; color:#c9d7e2;">ENG VENT</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#63788c;">REQ: ENGINEER</div></div>
+              <div style="font-size:15px; color:#8fa3b5; line-height:1.4;">Silent entry beside the holdout crew. Slow crawl, no suppressors needed.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- right: fireteam + launch -->
+        <div style="position:absolute; right:0; top:64px; bottom:0; width:400px; background:#070c12; border-left:1px solid #1d2f40; display:flex; flex-direction:column; padding:20px; gap:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">FIRETEAM SABLE — 6/6</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <sc-for list="{{ squad }}" as="m" hint-placeholder-count="6">
+              <div style="display:flex; align-items:center; gap:12px; border:1px solid #1d2f40; background:rgba(10,16,24,.9); padding:10px 12px;">
+                <div style="width:10px; height:10px; border-radius:50%; background:#3fd0f0; flex:none;"></div>
+                <div style="width:96px; font-size:17px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">{{ m.cs }}</div>
+                <div style="flex:1; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#63788c;">{{ m.role }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8fa3b5;">{{ m.weapon }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c; line-height:1.6;">INSERTION: SHUTTLE, SILENT RUNNING<br>EXFIL: BRIDGE DOCK CLAMP RELEASE</div>
+          <div style="flex:1;"></div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="height:48px; border:1px solid #243546; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:2px; color:#8fa3b5;">◂ EDIT LOADOUT</div>
+            <div style="height:64px; border:2px solid #3fd0f0; background:rgba(63,208,240,.16); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:600; letter-spacing:4px; color:#8ce4ff;">LAUNCH ASSAULT ▸</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 2C — LOADOUT ================= -->
+    <div id="2c" style="display:flex; flex-direction:column; gap:16px; flex:none;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <a href="#2c" style="display:flex; align-items:center; justify-content:center; width:52px; height:52px; border:2px solid #3fd0f0; color:#3fd0f0; font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600;">2C</a>
+        <div style="display:flex; flex-direction:column;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">LOADOUT</div>
+          <div style="font-size:15px; color:#8fa3b5;">Per-soldier equipment. Hull-safe rating ties weapons to ship destructibility.</div>
+        </div>
+      </div>
+
+      <div data-screen-label="2C Loadout" style="position:relative; width:1920px; height:1080px; background:#05080d; overflow:hidden; font-family:'Rajdhani',sans-serif; color:#c9d7e2; border:1px solid #16222f;">
+        <div style="position:absolute; left:0; right:0; top:0; height:64px; background:#080d14; border-bottom:1px solid #1d2f40; display:flex; align-items:center; gap:32px; padding:0 28px; z-index:3;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:5px; color:#e8f1f8;">INFILTRATOR</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#63788c;">LOADOUT — OP: CERBERUS KEY // FIRETEAM SABLE</div>
+          <div style="flex:1;"></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; color:#8fa3b5;">REQ <span style="color:#3fd0f0;">2,450</span></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; color:#ff8b3d; animation:blink 2s infinite;">JUMP WINDOW 09:14:22</div>
+        </div>
+
+        <!-- left: deploy roster -->
+        <div style="position:absolute; left:0; top:64px; bottom:0; width:320px; background:#070c12; border-right:1px solid #1d2f40; padding:20px; display:flex; flex-direction:column; gap:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">DEPLOYING — 6/6</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <sc-for list="{{ squad }}" as="m" hint-placeholder-count="6">
+              <div style="display:flex; align-items:center; gap:12px; border:1px solid {{ m.bd }}; background:rgba(10,16,24,.9); padding:12px;">
+                <div style="width:10px; height:10px; border-radius:50%; background:{{ m.hpc }}; flex:none;"></div>
+                <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+                  <div style="font-size:18px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">{{ m.cs }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#63788c;">{{ m.role }}</div>
+                </div>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#8fa3b5; text-align:right;">{{ m.weapon }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="border-top:1px solid #1d2f40; padding-top:12px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c; line-height:1.6;">SQUAD HULL-RISK PROFILE<br><span style="color:#3fd0f0;">4 HULL-SAFE</span> · <span style="color:#ff8b3d;">2 BREACH RISK</span></div>
+        </div>
+
+        <!-- center: soldier loadout -->
+        <div style="position:absolute; left:320px; top:64px; right:440px; bottom:0; padding:28px 36px; display:flex; flex-direction:column; gap:20px;">
+          <div style="display:flex; align-items:baseline; gap:16px;">
+            <div style="font-size:38px; font-weight:700; letter-spacing:2px; color:#8ce4ff;">SGT OKORO</div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:2px; color:#63788c;">BREACHER — LVL 6</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div style="border:1px solid #3fd0f0; background:rgba(63,208,240,.06); padding:16px; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#8fa3b5;">PRIMARY</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#3fd0f0;">HULL-SAFE</div></div>
+              <div style="font-size:22px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">K-12 SHOTGUN</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c;">DMG 9 · ROF 3 · ACC 5 — 6/24</div>
+            </div>
+            <div style="border:1px solid #243546; background:rgba(10,16,24,.9); padding:16px; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#8fa3b5;">SIDEARM</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#3fd0f0;">HULL-SAFE</div></div>
+              <div style="font-size:22px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">P-2 PISTOL</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c;">DMG 4 · ROF 5 · ACC 6 — 12/48</div>
+            </div>
+            <div style="border:1px solid #243546; background:rgba(10,16,24,.9); padding:16px; display:flex; flex-direction:column; gap:8px;">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#8fa3b5;">ARMOR</div>
+              <div style="font-size:22px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">VAC PLATE MK II</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c;">ARMOR 100 · SPEED −1 · VAC-RATED 20 MIN</div>
+            </div>
+            <div style="border:1px solid #243546; background:rgba(10,16,24,.9); padding:16px; display:flex; flex-direction:column; gap:8px;">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#8fa3b5;">CHARGE</div>
+              <div style="font-size:22px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">BREACH CHARGE ×3</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c;">OPENS: DOORS, INTERNAL WALLS</div>
+            </div>
+            <div style="border:1px solid #243546; background:rgba(10,16,24,.9); padding:16px; display:flex; flex-direction:column; gap:8px;">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#8fa3b5;">GRENADE</div>
+              <div style="font-size:22px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">FLASH ×4</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c;">STUN 3S · NO HULL DAMAGE</div>
+            </div>
+            <div style="border:1px solid #243546; background:rgba(10,16,24,.9); padding:16px; display:flex; flex-direction:column; gap:8px;">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#8fa3b5;">UTILITY</div>
+              <div style="font-size:22px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">DOOR SEALER</div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c;">WELDS DOORS SHUT — FUNNEL HOSTILES</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:32px; align-items:center; border-top:1px solid #1d2f40; padding-top:16px;">
+            <div style="display:flex; flex-direction:column; gap:6px; flex:1;">
+              <div style="display:flex; justify-content:space-between;"><div style="font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#8fa3b5;">WEIGHT</div><div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#c9d7e2;">34/40</div></div>
+              <div style="height:5px; background:#101b2a;"><div style="width:85%; height:5px; background:#3fd0f0;"></div></div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px; flex:1;">
+              <div style="display:flex; justify-content:space-between;"><div style="font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#8fa3b5;">O2 RESERVE</div><div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#c9d7e2;">18 MIN</div></div>
+              <div style="height:5px; background:#101b2a;"><div style="width:60%; height:5px; background:#ff8b3d;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- right: armory -->
+        <div style="position:absolute; right:0; top:64px; bottom:0; width:440px; background:#070c12; border-left:1px solid #1d2f40; padding:20px; display:flex; flex-direction:column; gap:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">ARMORY — PRIMARIES</div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <sc-for list="{{ weapons }}" as="w" hint-placeholder-count="6">
+              <div style="border:1px solid {{ w.bd }}; background:rgba(10,16,24,.9); padding:12px 14px; display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                  <div style="font-size:19px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">{{ w.name }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#3fd0f0;">{{ w.eqTag }}</div>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px; color:#63788c;">{{ w.cat }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px; color:{{ w.hsc }};">{{ w.hs }}</div>
+                </div>
+                <div style="display:flex; gap:14px; align-items:center;">
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#63788c; width:28px;">DMG</div>
+                  <div style="flex:1; height:4px; background:#101b2a;"><div style="width:{{ w.dmgW }}%; height:4px; background:#3fd0f0;"></div></div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#63788c; width:28px;">ROF</div>
+                  <div style="flex:1; height:4px; background:#101b2a;"><div style="width:{{ w.rofW }}%; height:4px; background:#3fd0f0;"></div></div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#63788c; width:28px;">ACC</div>
+                  <div style="flex:1; height:4px; background:#101b2a;"><div style="width:{{ w.accW }}%; height:4px; background:#3fd0f0;"></div></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="height:56px; border:2px solid #3fd0f0; background:rgba(63,208,240,.16); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600; letter-spacing:3px; color:#8ce4ff;">CONFIRM — TO BRIEFING ▸</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 2D — BARRACKS ================= -->
+    <div id="2d" style="display:flex; flex-direction:column; gap:16px; flex:none;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <a href="#2d" style="display:flex; align-items:center; justify-content:center; width:52px; height:52px; border:2px solid #3fd0f0; color:#3fd0f0; font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600;">2D</a>
+        <div style="display:flex; flex-direction:column;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">BARRACKS</div>
+          <div style="font-size:15px; color:#8fa3b5;">Full 12-soldier roster, service record, and a branching promotion choice.</div>
+        </div>
+      </div>
+
+      <div data-screen-label="2D Barracks" style="position:relative; width:1920px; height:1080px; background:#05080d; overflow:hidden; font-family:'Rajdhani',sans-serif; color:#c9d7e2; border:1px solid #16222f;">
+        <div style="position:absolute; left:0; right:0; top:0; height:64px; background:#080d14; border-bottom:1px solid #1d2f40; display:flex; align-items:center; gap:32px; padding:0 28px; z-index:3;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:5px; color:#e8f1f8;">INFILTRATOR</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#63788c;">BARRACKS — VSS RESOLUTE // 12 PERSONNEL</div>
+          <div style="flex:1;"></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; color:#8fa3b5;">REQ <span style="color:#3fd0f0;">2,450</span></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; color:#ff8b3d;">1 PROMOTION PENDING</div>
+        </div>
+
+        <!-- left: roster -->
+        <div style="position:absolute; left:0; top:64px; bottom:0; width:520px; background:#070c12; border-right:1px solid #1d2f40; padding:20px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">ROSTER</div>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <sc-for list="{{ roster }}" as="r" hint-placeholder-count="12">
+              <div style="display:flex; align-items:center; gap:12px; border:1px solid {{ r.bd }}; background:rgba(10,16,24,.9); padding:9px 12px;">
+                <div style="width:34px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#63788c; flex:none;">{{ r.rank }}</div>
+                <div style="width:110px; font-size:17px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">{{ r.cs }}</div>
+                <div style="width:86px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#8fa3b5;">{{ r.cls }}</div>
+                <div style="width:34px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#63788c;">L{{ r.lvl }}</div>
+                <div style="flex:1; height:4px; background:#101b2a;"><div style="width:{{ r.xp }}%; height:4px; background:#41586e;"></div></div>
+                <div style="width:92px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:{{ r.stc }}; text-align:right;">{{ r.st }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- center: soldier detail -->
+        <div style="position:absolute; left:520px; top:64px; right:460px; bottom:0; padding:28px 36px; display:flex; flex-direction:column; gap:22px;">
+          <div style="display:flex; align-items:baseline; gap:16px;">
+            <div style="font-size:42px; font-weight:700; letter-spacing:2px; color:#8ce4ff;">SGT OKORO</div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:2px; color:#63788c;">BREACHER — LVL 6</div>
+            <div style="display:flex; gap:3px; align-items:flex-end;">
+              <div style="width:14px; height:8px; background:#3fd0f0;"></div>
+              <div style="width:14px; height:8px; background:#3fd0f0;"></div>
+              <div style="width:14px; height:8px; background:#3fd0f0;"></div>
+            </div>
+          </div>
+          <div style="display:flex; gap:36px; font-family:'IBM Plex Mono',monospace; font-size:14px; color:#8fa3b5;">
+            <div>MISSIONS <span style="color:#e8f1f8;">14</span></div>
+            <div>KILLS <span style="color:#e8f1f8;">32</span></div>
+            <div>WOUNDS <span style="color:#e8f1f8;">2</span></div>
+            <div>BREACHES <span style="color:#e8f1f8;">21</span></div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px; max-width:560px;">
+            <sc-for list="{{ okoroStats }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:16px;">
+                <div style="width:70px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#8fa3b5;">{{ s.n }}</div>
+                <div style="flex:1; height:8px; background:#101b2a;"><div style="width:{{ s.v }}%; height:8px; background:#3fd0f0;"></div></div>
+                <div style="width:36px; font-family:'IBM Plex Mono',monospace; font-size:14px; color:#e8f1f8; text-align:right;">{{ s.v }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; max-width:560px;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">TRAITS</div>
+            <div style="border:1px solid #243546; background:rgba(10,16,24,.9); padding:12px 14px;">
+              <div style="font-size:17px; font-weight:700; color:#e8f1f8;">COOL HEAD</div>
+              <div style="font-size:15px; color:#8fa3b5;">Immune to panic when a squadmate goes down.</div>
+            </div>
+            <div style="border:1px solid #243546; background:rgba(10,16,24,.9); padding:12px 14px;">
+              <div style="font-size:17px; font-weight:700; color:#e8f1f8;">VAC BORN</div>
+              <div style="font-size:15px; color:#8fa3b5;">+2 move speed in depressurized compartments.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- right: promotion -->
+        <div style="position:absolute; right:0; top:64px; bottom:0; width:460px; background:#070c12; border-left:1px solid #1d2f40; padding:20px; display:flex; flex-direction:column; gap:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#ff8b3d; animation:blink 2.4s infinite;">PROMOTION AVAILABLE — CHOOSE SPECIALIZATION</div>
+          <div style="border:1px solid #3fd0f0; background:rgba(63,208,240,.06); padding:18px; display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:22px; font-weight:700; letter-spacing:1px; color:#8ce4ff;">SHOCK BREACHER</div>
+            <div style="font-size:16px; color:#a9bccb; line-height:1.45;">DYNAMIC ENTRY — +2 speed for 3s after any breach. First shot after entry never misses.</div>
+            <div style="height:44px; border:1px solid #3fd0f0; background:rgba(63,208,240,.16); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; letter-spacing:2px; color:#8ce4ff;">PROMOTE ▸</div>
+          </div>
+          <div style="border:1px solid #243546; background:rgba(10,16,24,.9); padding:18px; display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:22px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">SAPPER</div>
+            <div style="font-size:16px; color:#8fa3b5; line-height:1.45;">SHAPED CHARGE — breach charges can open internal hull walls, creating new routes.</div>
+            <div style="height:44px; border:1px solid #243546; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#8fa3b5;">PROMOTE ▸</div>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="border-top:1px solid #1d2f40; padding-top:12px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c; line-height:1.6;">SPECIALIZATION IS PERMANENT.<br>NEXT PROMOTION AT LVL 9.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="display:flex; flex-direction:column; gap:36px; padding:70px; font-family:'Rajdhani',sans-serif;">
+
+  <div style="display:flex; flex-direction:column; gap:8px; max-width:900px;">
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:4px; color:#63788c;">TURN 1 — TACTICAL BATTLE SCREEN</div>
+    <div style="font-size:44px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">INFILTRATOR — 3 DIRECTIONS</div>
+    <div style="font-size:19px; color:#8fa3b5; line-height:1.5;">Same moment in the same mission — boarding action aboard the frigate <span style="color:#3fd0f0;">CSV KESTREL</span>, fireteam of 6 stacked on the armory hatch. Three UI treatments: <a href="#1a">1a</a> full-HUD planner, <a href="#1b">1b</a> minimal diegetic feed, <a href="#1c">1c</a> command console with sidebar.</div>
+  </div>
+
+  <div style="display:flex; gap:90px; flex-wrap:wrap; align-items:flex-start;">
+
+    <!-- ================= OPTION 1A — PLANNER ================= -->
+    <div id="1a" style="display:flex; flex-direction:column; gap:16px; flex:none;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <a href="#1a" style="display:flex; align-items:center; justify-content:center; width:52px; height:52px; border:2px solid #3fd0f0; color:#3fd0f0; font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600;">1A</a>
+        <div style="display:flex; flex-direction:column;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">PLANNER</div>
+          <div style="font-size:15px; color:#8fa3b5;">Full command deck along the bottom — Door Kickers DNA. Everything one glance away.</div>
+        </div>
+      </div>
+
+      <div data-screen-label="1A Tactical — Planner" style="position:relative; width:1920px; height:1080px; background:#05080d; overflow:hidden; font-family:'Rajdhani',sans-serif; color:#c9d7e2; border:1px solid #16222f;">
+        <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(63,208,240,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(63,208,240,.045) 1px,transparent 1px); background-size:48px 48px;"></div>
+
+        <!-- ======== DECK PLAN ======== -->
+        <div style="position:absolute; inset:0;">
+          <div style="position:absolute; left:130px; top:150px; width:1560px; height:700px; border:3px solid #2c4257; border-radius:16px 240px 240px 16px; background:#0a121b;"></div>
+          <!-- rooms -->
+          <div style="position:absolute; left:180px; top:190px; width:330px; height:270px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">ENGINEERING</div></div>
+          <div style="position:absolute; left:550px; top:190px; width:260px; height:270px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">MED BAY</div></div>
+          <div style="position:absolute; left:850px; top:190px; width:260px; height:270px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">ARMORY</div></div>
+          <div style="position:absolute; left:180px; top:460px; width:1090px; height:140px; background:#101b2a; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">CORRIDOR A</div></div>
+          <div style="position:absolute; left:180px; top:600px; width:330px; height:210px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">CARGO BAY</div></div>
+          <div style="position:absolute; left:550px; top:600px; width:260px; height:210px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">CREW QTRS</div></div>
+          <div style="position:absolute; left:850px; top:600px; width:260px; height:210px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">LIFE SUPPORT</div></div>
+          <div style="position:absolute; left:1300px; top:330px; width:330px; height:340px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#63788c;">BRIDGE</div></div>
+          <div style="position:absolute; left:240px; top:810px; width:140px; height:56px; background:#1a1208; border:2px solid #ff8b3d;"><div style="position:absolute; top:6px; left:10px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#ff8b3d;">AIRLOCK 2</div></div>
+          <!-- doors -->
+          <div style="position:absolute; left:330px; top:457px; width:60px; height:8px; background:#3fd0f0;"></div>
+          <div style="position:absolute; left:660px; top:457px; width:60px; height:8px; background:#3fd0f0;"></div>
+          <div style="position:absolute; left:950px; top:457px; width:60px; height:8px; background:#ff8b3d;"></div>
+          <div style="position:absolute; left:330px; top:597px; width:60px; height:8px; background:#3fd0f0;"></div>
+          <div style="position:absolute; left:660px; top:597px; width:60px; height:8px; background:#3fd0f0;"></div>
+          <div style="position:absolute; left:950px; top:597px; width:60px; height:8px; background:#3fd0f0;"></div>
+          <div style="position:absolute; left:1267px; top:495px; width:8px; height:70px; background:#ff5c33;"></div>
+          <div style="position:absolute; left:1284px; top:530px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#ff5c33;">SEALED</div>
+          <div style="position:absolute; left:290px; top:806px; width:50px; height:8px; background:#ff8b3d;"></div>
+          <div style="position:absolute; left:952px; top:432px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#ff8b3d;">LOCKED</div>
+          <!-- entry marker -->
+          <div style="position:absolute; left:240px; top:880px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#ff8b3d;">▲ ENTRY POINT</div>
+
+          <!-- overwatch cone (ASH) -->
+          <div style="position:absolute; left:585px; top:478px; width:400px; height:108px; background:rgba(63,208,240,.07); clip-path:polygon(0 50%, 100% 0, 100% 100%);"></div>
+
+          <!-- movement path (OKORO -> armory hatch) -->
+          <div style="position:absolute; left:948px; top:519px; width:56px; height:0; border-top:2px dashed #3fd0f0;"></div>
+          <div style="position:absolute; left:1002px; top:468px; width:0; height:52px; border-left:2px dashed #3fd0f0;"></div>
+          <div style="position:absolute; left:997px; top:514px; width:10px; height:10px; border-radius:50%; background:#3fd0f0;"></div>
+          <div style="position:absolute; left:968px; top:436px; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; letter-spacing:2px; color:#3fd0f0;">BREACH ▸</div>
+
+          <!-- squad -->
+          <div style="position:absolute; left:560px; top:520px; width:26px; height:26px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+          <div style="position:absolute; left:548px; top:552px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; color:#3fd0f0;">ASH</div>
+          <div style="position:absolute; left:826px; top:498px; width:26px; height:26px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+          <div style="position:absolute; left:796px; top:530px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; color:#3fd0f0;">KOWALSKI</div>
+          <div style="position:absolute; left:874px; top:540px; width:26px; height:26px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+          <div style="position:absolute; left:862px; top:572px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; color:#3fd0f0;">REYES</div>
+          <div style="position:absolute; left:898px; top:492px; width:26px; height:26px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+          <div style="position:absolute; left:888px; top:462px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; color:#3fd0f0;">VANCE</div>
+          <div style="position:absolute; left:614px; top:640px; width:26px; height:26px; border-radius:50%; background:#1a1208; border:2px solid #ff5c33; box-shadow:0 0 10px rgba(255,92,51,.45);"></div>
+          <div style="position:absolute; left:600px; top:672px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; color:#ff5c33;">DUVAL ✚</div>
+          <!-- selected: OKORO -->
+          <div style="position:absolute; left:926px; top:510px; width:44px; height:44px; border-radius:50%; border:2px dashed #3fd0f0; animation:blink 2.4s infinite;"></div>
+          <div style="position:absolute; left:935px; top:519px; width:26px; height:26px; border-radius:50%; background:#123240; border:2px solid #3fd0f0; box-shadow:0 0 14px rgba(63,208,240,.7);"></div>
+          <div style="position:absolute; left:922px; top:562px; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; letter-spacing:1px; color:#8ce4ff;">OKORO ◄</div>
+
+          <!-- hostiles -->
+          <div style="position:absolute; left:648px; top:296px; width:20px; height:20px; background:#2a130c; border:2px solid #ff5c33; transform:rotate(45deg); box-shadow:0 0 10px rgba(255,92,51,.5);"></div>
+          <div style="position:absolute; left:634px; top:326px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; color:#ff5c33;">HST-1</div>
+          <div style="position:absolute; left:1180px; top:510px; width:20px; height:20px; background:#2a130c; border:2px solid #ff5c33; transform:rotate(45deg); box-shadow:0 0 10px rgba(255,92,51,.5);"></div>
+          <div style="position:absolute; left:1166px; top:540px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; color:#ff5c33;">HST-2</div>
+
+          <!-- objective -->
+          <div style="position:absolute; left:1428px; top:462px; width:26px; height:26px; border:2px solid #3fd0f0; transform:rotate(45deg); animation:blink 2s infinite;"></div>
+          <div style="position:absolute; left:1394px; top:502px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; letter-spacing:2px; color:#3fd0f0;">OBJ-1 // HELM</div>
+
+          <!-- fog of war -->
+          <sc-if value="{{ showFog }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute; left:850px; top:190px; width:264px; height:274px; background:rgba(3,6,10,.86); border:2px solid #1b2836; background-image:repeating-linear-gradient(45deg, rgba(99,120,140,.08) 0 2px, transparent 2px 14px);"><div style="position:absolute; bottom:10px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#41586e;">NO SENSOR DATA</div><div style="position:absolute; left:110px; top:104px; width:24px; height:24px; border-radius:50%; border:2px dashed #ff8b3d; color:#ff8b3d; font-family:'IBM Plex Mono',monospace; font-size:14px; display:flex; align-items:center; justify-content:center; animation:blink 1.6s infinite;">?</div></div>
+            <div style="position:absolute; left:850px; top:600px; width:264px; height:214px; background:rgba(3,6,10,.86); border:2px solid #1b2836; background-image:repeating-linear-gradient(45deg, rgba(99,120,140,.08) 0 2px, transparent 2px 14px);"><div style="position:absolute; bottom:10px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#41586e;">NO SENSOR DATA</div></div>
+            <div style="position:absolute; left:1300px; top:330px; width:334px; height:344px; background:rgba(3,6,10,.8); border:2px solid #1b2836; background-image:repeating-linear-gradient(45deg, rgba(99,120,140,.08) 0 2px, transparent 2px 14px);"><div style="position:absolute; bottom:10px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#41586e;">NO SENSOR DATA</div><div style="position:absolute; left:140px; top:140px; width:24px; height:24px; border-radius:50%; border:2px dashed #ff8b3d; color:#ff8b3d; font-family:'IBM Plex Mono',monospace; font-size:14px; display:flex; align-items:center; justify-content:center; animation:blink 1.6s infinite;">?</div><div style="position:absolute; left:172px; top:144px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:#ff8b3d;">×3</div></div>
+          </sc-if>
+        </div>
+
+        <!-- ======== HUD ======== -->
+        <!-- top-left: objectives -->
+        <div style="position:absolute; left:24px; top:24px; width:330px; background:rgba(7,12,18,.93); border:1px solid #1d2f40; padding:16px 18px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline;"><div style="font-size:19px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">OP: CERBERUS KEY</div><div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c;">CSV KESTREL</div></div>
+          <div style="display:flex; align-items:center; gap:10px;"><div style="width:14px; height:14px; border:2px solid #3fd0f0; background:#3fd0f0; flex:none;"></div><div style="font-size:16px; color:#63788c; text-decoration:line-through;">Breach and board</div></div>
+          <div style="display:flex; align-items:center; gap:10px;"><div style="width:14px; height:14px; border:2px solid #3fd0f0; flex:none;"></div><div style="font-size:16px; color:#c9d7e2;">Reach the bridge</div></div>
+          <div style="display:flex; align-items:center; gap:10px;"><div style="width:14px; height:14px; border:2px solid #3fd0f0; flex:none;"></div><div style="font-size:16px; color:#c9d7e2;">Secure helm controls</div></div>
+          <div style="border-top:1px solid #1d2f40; padding-top:8px; font-family:'IBM Plex Mono',monospace; font-size:13px; color:#8fa3b5;">CASUALTIES <span style="color:#3fd0f0;">0</span>/2 MAX</div>
+        </div>
+
+        <!-- top-right: ship status -->
+        <div style="position:absolute; right:24px; top:24px; width:300px; background:rgba(7,12,18,.93); border:1px solid #1d2f40; padding:16px 18px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#8fa3b5;">HULL INTEGRITY</div><div style="font-family:'IBM Plex Mono',monospace; font-size:15px; color:#3fd0f0;">94%</div></div>
+          <div style="height:6px; background:#101b2a;"><div style="width:94%; height:6px; background:#3fd0f0;"></div></div>
+          <div style="display:flex; justify-content:space-between; align-items:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#8fa3b5;">ALERT STATE</div><div style="font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:#ff5c33; animation:blink 1.8s infinite;">INTRUDER</div></div>
+          <div style="display:flex; justify-content:space-between; align-items:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#8fa3b5;">O2 — DECK 2</div><div style="font-family:'IBM Plex Mono',monospace; font-size:14px; color:#c9d7e2;">NOMINAL</div></div>
+        </div>
+
+        <!-- bottom command deck -->
+        <div style="position:absolute; left:0; right:0; bottom:0; height:170px; background:rgba(6,10,16,.96); border-top:1px solid #1d2f40; display:flex; align-items:center; gap:18px; padding:0 20px;">
+          <!-- abilities -->
+          <div style="display:flex; flex-direction:column; gap:8px; flex:none;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#8ce4ff;">OKORO — ORDERS</div>
+            <div style="display:flex; gap:8px;">
+              <sc-for list="{{ abilities }}" as="a" hint-placeholder-count="6">
+                <div style="width:68px; height:78px; border:1px solid {{ a.bd }}; background:{{ a.bg }}; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;">
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:17px; font-weight:600; color:#3fd0f0;">{{ a.k }}</div>
+                  <div style="font-size:12px; letter-spacing:1px; color:#8fa3b5;">{{ a.n }}</div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#63788c;">{{ a.q }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- squad cards -->
+          <div style="display:flex; gap:10px; flex:1; justify-content:center;">
+            <sc-for list="{{ squad }}" as="m" hint-placeholder-count="6">
+              <div style="width:132px; border:1px solid {{ m.bd }}; background:rgba(9,15,22,.95); padding:9px 10px; display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline;"><div style="font-size:18px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">{{ m.cs }}</div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#63788c;">{{ m.role }}</div></div>
+                <div style="height:5px; background:#101b2a;"><div style="width:{{ m.hp }}%; height:5px; background:{{ m.hpc }};"></div></div>
+                <div style="height:5px; background:#101b2a;"><div style="width:{{ m.armor }}%; height:5px; background:#41586e;"></div></div>
+                <div style="display:flex; justify-content:space-between;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8fa3b5;">{{ m.ammo }}</div><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:{{ m.stc }};">{{ m.status }}</div></div>
+              </div>
+            </sc-for>
+          </div>
+          <!-- time control -->
+          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex:none;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; letter-spacing:4px; color:#ff8b3d; animation:blink 2s infinite;">■ PAUSED</div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:15px; color:#8fa3b5;">MISSION T+04:32</div>
+            <div style="display:flex; gap:6px;">
+              <div style="width:52px; height:38px; border:1px solid #3fd0f0; background:rgba(63,208,240,.14); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:15px; color:#3fd0f0;">II</div>
+              <div style="width:52px; height:38px; border:1px solid #243546; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:15px; color:#8fa3b5;">1×</div>
+              <div style="width:52px; height:38px; border:1px solid #243546; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:15px; color:#8fa3b5;">2×</div>
+              <div style="width:52px; height:38px; border:1px solid #243546; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:15px; color:#8fa3b5;">4×</div>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ redAlert }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 40%, rgba(255,60,20,.16)); pointer-events:none;"></div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- ================= OPTION 1B — HULLFEED ================= -->
+    <div id="1b" style="display:flex; flex-direction:column; gap:16px; flex:none;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <a href="#1b" style="display:flex; align-items:center; justify-content:center; width:52px; height:52px; border:2px solid #ff8b3d; color:#ff8b3d; font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600;">1B</a>
+        <div style="display:flex; flex-direction:column;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">HULLFEED</div>
+          <div style="font-size:15px; color:#8fa3b5;">Minimal diegetic overlay — you're watching the ship's own internal sensors. Aliens vibe, max atmosphere.</div>
+        </div>
+      </div>
+
+      <div data-screen-label="1B Tactical — Hullfeed" style="position:relative; width:1920px; height:1080px; background:#04060a; overflow:hidden; font-family:'Rajdhani',sans-serif; color:#c9d7e2; border:1px solid #16222f;">
+        <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(63,208,240,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(63,208,240,.03) 1px,transparent 1px); background-size:48px 48px;"></div>
+
+        <!-- deck plan (darker) -->
+        <div style="position:absolute; inset:0;">
+          <div style="position:absolute; left:130px; top:150px; width:1560px; height:700px; border:3px solid #22354a; border-radius:16px 240px 240px 16px; background:#070d14;"></div>
+          <div style="position:absolute; left:180px; top:190px; width:330px; height:270px; background:#0a1220; border:2px solid #2a3d52;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#4a6076;">ENGINEERING</div></div>
+          <div style="position:absolute; left:550px; top:190px; width:260px; height:270px; background:#0a1220; border:2px solid #2a3d52;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#4a6076;">MED BAY</div></div>
+          <div style="position:absolute; left:850px; top:190px; width:260px; height:270px; background:#0a1220; border:2px solid #2a3d52;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#4a6076;">ARMORY</div></div>
+          <div style="position:absolute; left:180px; top:460px; width:1090px; height:140px; background:#0c1522; border:2px solid #2a3d52;"></div>
+          <div style="position:absolute; left:180px; top:600px; width:330px; height:210px; background:#0a1220; border:2px solid #2a3d52;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#4a6076;">CARGO BAY</div></div>
+          <div style="position:absolute; left:550px; top:600px; width:260px; height:210px; background:#0a1220; border:2px solid #2a3d52;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#4a6076;">CREW QTRS</div></div>
+          <div style="position:absolute; left:850px; top:600px; width:260px; height:210px; background:#0a1220; border:2px solid #2a3d52;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#4a6076;">LIFE SUPPORT</div></div>
+          <div style="position:absolute; left:1300px; top:330px; width:330px; height:340px; background:#0a1220; border:2px solid #2a3d52;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#4a6076;">BRIDGE</div></div>
+          <div style="position:absolute; left:240px; top:810px; width:140px; height:56px; background:#170f06; border:2px solid #b35f22;"><div style="position:absolute; top:6px; left:10px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#ff8b3d;">AIRLOCK 2</div></div>
+          <!-- breach glow -->
+          <div style="position:absolute; left:120px; top:560px; width:520px; height:420px; background:radial-gradient(ellipse at 40% 70%, rgba(255,110,40,.16), transparent 65%); pointer-events:none;"></div>
+          <!-- doors -->
+          <div style="position:absolute; left:330px; top:457px; width:60px; height:8px; background:#2a8ba0;"></div>
+          <div style="position:absolute; left:660px; top:457px; width:60px; height:8px; background:#2a8ba0;"></div>
+          <div style="position:absolute; left:950px; top:457px; width:60px; height:8px; background:#b35f22;"></div>
+          <div style="position:absolute; left:330px; top:597px; width:60px; height:8px; background:#2a8ba0;"></div>
+          <div style="position:absolute; left:660px; top:597px; width:60px; height:8px; background:#2a8ba0;"></div>
+          <div style="position:absolute; left:950px; top:597px; width:60px; height:8px; background:#2a8ba0;"></div>
+          <div style="position:absolute; left:1267px; top:495px; width:8px; height:70px; background:#ff5c33;"></div>
+          <div style="position:absolute; left:290px; top:806px; width:50px; height:8px; background:#ff8b3d;"></div>
+
+          <!-- squad -->
+          <div style="position:absolute; left:560px; top:520px; width:24px; height:24px; border-radius:50%; background:#0a1220; border:2px solid #3fd0f0;"></div>
+          <div style="position:absolute; left:826px; top:498px; width:24px; height:24px; border-radius:50%; background:#0a1220; border:2px solid #3fd0f0;"></div>
+          <div style="position:absolute; left:874px; top:540px; width:24px; height:24px; border-radius:50%; background:#0a1220; border:2px solid #3fd0f0;"></div>
+          <div style="position:absolute; left:898px; top:492px; width:24px; height:24px; border-radius:50%; background:#0a1220; border:2px solid #3fd0f0;"></div>
+          <div style="position:absolute; left:614px; top:640px; width:24px; height:24px; border-radius:50%; background:#170f06; border:2px solid #ff5c33;"></div>
+          <div style="position:absolute; left:926px; top:510px; width:44px; height:44px; border-radius:50%; border:2px dashed #8ce4ff; animation:blink 2.4s infinite;"></div>
+          <div style="position:absolute; left:936px; top:520px; width:24px; height:24px; border-radius:50%; background:#123240; border:2px solid #8ce4ff; box-shadow:0 0 16px rgba(63,208,240,.7);"></div>
+          <div style="position:absolute; left:912px; top:562px; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#8ce4ff;">SGT OKORO</div>
+          <!-- path -->
+          <div style="position:absolute; left:948px; top:520px; width:56px; height:0; border-top:2px dashed #8ce4ff;"></div>
+          <div style="position:absolute; left:1002px; top:468px; width:0; height:52px; border-left:2px dashed #8ce4ff;"></div>
+          <!-- hostiles: motion-tracker blips -->
+          <div style="position:absolute; left:640px; top:288px; width:36px; height:36px; border-radius:50%; background:radial-gradient(circle, rgba(255,92,51,.9) 0 5px, rgba(255,92,51,.25) 6px, transparent 70%); animation:blink 1.2s infinite;"></div>
+          <div style="position:absolute; left:1172px; top:502px; width:36px; height:36px; border-radius:50%; background:radial-gradient(circle, rgba(255,92,51,.9) 0 5px, rgba(255,92,51,.25) 6px, transparent 70%); animation:blink 1.2s infinite;"></div>
+          <div style="position:absolute; left:1430px; top:464px; width:36px; height:36px; border-radius:50%; background:radial-gradient(circle, rgba(255,139,61,.7) 0 4px, rgba(255,139,61,.18) 5px, transparent 70%); animation:blink 1.8s infinite;"></div>
+
+          <sc-if value="{{ showFog }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute; left:850px; top:190px; width:264px; height:274px; background:rgba(2,4,8,.9);"></div>
+            <div style="position:absolute; left:850px; top:600px; width:264px; height:214px; background:rgba(2,4,8,.9);"></div>
+            <div style="position:absolute; left:1300px; top:330px; width:334px; height:344px; background:rgba(2,4,8,.82);"></div>
+          </sc-if>
+        </div>
+
+        <!-- scanlines + vignette -->
+        <div style="position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.016) 0 1px, transparent 1px 3px); pointer-events:none;"></div>
+        <div style="position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,.72)); pointer-events:none;"></div>
+
+        <!-- top-center: time state -->
+        <div style="position:absolute; left:0; right:0; top:26px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:600; letter-spacing:8px; color:#ff8b3d; animation:blink 2s infinite;">— TACTICAL HOLD —</div>
+          <div style="display:flex; gap:18px; font-family:'IBM Plex Mono',monospace; font-size:14px; color:#63788c;"><span>T+04:32</span><span style="color:#3fd0f0;">II</span><span>1×</span><span>2×</span><span>4×</span></div>
+        </div>
+
+        <!-- top-right: ship vitals, tiny -->
+        <div style="position:absolute; right:30px; top:30px; display:flex; flex-direction:column; align-items:flex-end; gap:4px; font-family:'IBM Plex Mono',monospace; font-size:13px;">
+          <div style="color:#63788c;">CSV KESTREL // DECK 2</div>
+          <div style="color:#3fd0f0;">HULL 94%</div>
+          <div style="color:#ff5c33; animation:blink 1.8s infinite;">ALERT: INTRUDER</div>
+        </div>
+
+        <!-- left strip: squad tiles -->
+        <div style="position:absolute; left:0; top:0; bottom:0; width:172px; background:linear-gradient(90deg, rgba(4,7,11,.92), rgba(4,7,11,.55) 80%, transparent); display:flex; flex-direction:column; justify-content:center; gap:10px; padding:0 18px;">
+          <sc-for list="{{ squad }}" as="m" hint-placeholder-count="6">
+            <div style="border-left:3px solid {{ m.hpc }}; background:rgba(8,13,20,.85); padding:8px 10px; display:flex; flex-direction:column; gap:5px;">
+              <div style="display:flex; justify-content:space-between; align-items:baseline;"><div style="font-size:16px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">{{ m.cs }}</div></div>
+              <div style="height:3px; background:#101b2a;"><div style="width:{{ m.hp }}%; height:3px; background:{{ m.hpc }};"></div></div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px; color:{{ m.stc }};">{{ m.status }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- bottom-center: selected unit orders -->
+        <div style="position:absolute; left:0; right:0; bottom:30px; display:flex; flex-direction:column; align-items:center; gap:10px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8ce4ff;">SGT OKORO — BREACHER — K-12 SHOTGUN 6/24</div>
+          <div style="display:flex; gap:8px;">
+            <sc-for list="{{ abilities }}" as="a" hint-placeholder-count="6">
+              <div style="height:44px; padding:0 18px; border:1px solid {{ a.bd }}; background:{{ a.bg }}; display:flex; align-items:center; gap:10px;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:#3fd0f0;">{{ a.k }}</div>
+                <div style="font-size:14px; letter-spacing:1px; color:#8fa3b5;">{{ a.n }} {{ a.q }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ redAlert }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 40%, rgba(255,60,20,.2)); pointer-events:none;"></div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- ================= OPTION 1C — CONSOLE ================= -->
+    <div id="1c" style="display:flex; flex-direction:column; gap:16px; flex:none;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <a href="#1c" style="display:flex; align-items:center; justify-content:center; width:52px; height:52px; border:2px solid #8fa3b5; color:#8fa3b5; font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600;">1C</a>
+        <div style="display:flex; flex-direction:column;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:2px; color:#e8f1f8;">CONSOLE</div>
+          <div style="font-size:15px; color:#8fa3b5;">Persistent right sidebar — roster, selected unit, event log. XCOM ops-room feel, best for 12-strong squads.</div>
+        </div>
+      </div>
+
+      <div data-screen-label="1C Tactical — Console" style="position:relative; width:1920px; height:1080px; background:#05080d; overflow:hidden; font-family:'Rajdhani',sans-serif; color:#c9d7e2; border:1px solid #16222f;">
+        <!-- top command bar -->
+        <div style="position:absolute; left:0; right:0; top:0; height:64px; background:#080d14; border-bottom:1px solid #1d2f40; display:flex; align-items:center; gap:32px; padding:0 28px; z-index:3;">
+          <div style="font-size:24px; font-weight:700; letter-spacing:5px; color:#e8f1f8;">INFILTRATOR</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:2px; color:#63788c;">OP: CERBERUS KEY // CSV KESTREL // DECK 2</div>
+          <div style="flex:1;"></div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:18px; color:#8fa3b5;">T+04:32</div>
+          <div style="display:flex; gap:6px;">
+            <div style="width:44px; height:34px; border:1px solid #3fd0f0; background:rgba(63,208,240,.14); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:#3fd0f0;">II</div>
+            <div style="width:44px; height:34px; border:1px solid #243546; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:#8fa3b5;">1×</div>
+            <div style="width:44px; height:34px; border:1px solid #243546; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:#8fa3b5;">2×</div>
+            <div style="width:44px; height:34px; border:1px solid #243546; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:#8fa3b5;">4×</div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:#ff5c33; border:1px solid #57291d; padding:7px 14px; animation:blink 1.8s infinite;">ALERT: INTRUDER</div>
+        </div>
+
+        <!-- map area (scaled deck plan) -->
+        <div style="position:absolute; left:0; top:64px; right:400px; bottom:0; overflow:hidden;">
+          <div style="position:absolute; inset:0; background-image:linear-gradient(rgba(63,208,240,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(63,208,240,.04) 1px,transparent 1px); background-size:48px 48px;"></div>
+          <div style="position:absolute; left:0; top:40px; width:1920px; height:1080px; transform:scale(.78); transform-origin:top left;">
+            <div style="position:absolute; left:130px; top:100px; width:1560px; height:700px; border:3px solid #2c4257; border-radius:16px 240px 240px 16px; background:#0a121b;"></div>
+            <div style="position:absolute; left:180px; top:140px; width:330px; height:270px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:3px; color:#63788c;">ENGINEERING</div></div>
+            <div style="position:absolute; left:550px; top:140px; width:260px; height:270px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:3px; color:#63788c;">MED BAY</div></div>
+            <div style="position:absolute; left:850px; top:140px; width:260px; height:270px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:3px; color:#63788c;">ARMORY</div></div>
+            <div style="position:absolute; left:180px; top:410px; width:1090px; height:140px; background:#101b2a; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:3px; color:#63788c;">CORRIDOR A</div></div>
+            <div style="position:absolute; left:180px; top:550px; width:330px; height:210px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:3px; color:#63788c;">CARGO BAY</div></div>
+            <div style="position:absolute; left:550px; top:550px; width:260px; height:210px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:3px; color:#63788c;">CREW QTRS</div></div>
+            <div style="position:absolute; left:850px; top:550px; width:260px; height:210px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:3px; color:#63788c;">LIFE SUPPORT</div></div>
+            <div style="position:absolute; left:1300px; top:280px; width:330px; height:340px; background:#0e1826; border:2px solid #33495e;"><div style="position:absolute; top:8px; left:12px; font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:3px; color:#63788c;">BRIDGE</div></div>
+            <div style="position:absolute; left:240px; top:760px; width:140px; height:56px; background:#1a1208; border:2px solid #ff8b3d;"><div style="position:absolute; top:6px; left:10px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:2px; color:#ff8b3d;">AIRLOCK 2</div></div>
+            <div style="position:absolute; left:330px; top:407px; width:60px; height:8px; background:#3fd0f0;"></div>
+            <div style="position:absolute; left:660px; top:407px; width:60px; height:8px; background:#3fd0f0;"></div>
+            <div style="position:absolute; left:950px; top:407px; width:60px; height:8px; background:#ff8b3d;"></div>
+            <div style="position:absolute; left:330px; top:547px; width:60px; height:8px; background:#3fd0f0;"></div>
+            <div style="position:absolute; left:660px; top:547px; width:60px; height:8px; background:#3fd0f0;"></div>
+            <div style="position:absolute; left:950px; top:547px; width:60px; height:8px; background:#3fd0f0;"></div>
+            <div style="position:absolute; left:1267px; top:445px; width:8px; height:70px; background:#ff5c33;"></div>
+            <div style="position:absolute; left:290px; top:756px; width:50px; height:8px; background:#ff8b3d;"></div>
+            <!-- sensor sweep -->
+            <div style="position:absolute; left:600px; top:190px; width:640px; height:640px; border-radius:50%; border:1px solid rgba(63,208,240,.25); background:conic-gradient(from 40deg, rgba(63,208,240,.14), transparent 70deg);"></div>
+            <!-- squad -->
+            <div style="position:absolute; left:560px; top:470px; width:28px; height:28px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+            <div style="position:absolute; left:826px; top:448px; width:28px; height:28px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+            <div style="position:absolute; left:874px; top:490px; width:28px; height:28px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+            <div style="position:absolute; left:898px; top:442px; width:28px; height:28px; border-radius:50%; background:#0e1826; border:2px solid #3fd0f0; box-shadow:0 0 10px rgba(63,208,240,.45);"></div>
+            <div style="position:absolute; left:614px; top:590px; width:28px; height:28px; border-radius:50%; background:#1a1208; border:2px solid #ff5c33; box-shadow:0 0 10px rgba(255,92,51,.45);"></div>
+            <div style="position:absolute; left:924px; top:458px; width:48px; height:48px; border-radius:50%; border:2px dashed #3fd0f0; animation:blink 2.4s infinite;"></div>
+            <div style="position:absolute; left:934px; top:468px; width:28px; height:28px; border-radius:50%; background:#123240; border:2px solid #3fd0f0; box-shadow:0 0 14px rgba(63,208,240,.7);"></div>
+            <div style="position:absolute; left:948px; top:470px; width:56px; height:0; border-top:2px dashed #3fd0f0;"></div>
+            <div style="position:absolute; left:1002px; top:418px; width:0; height:52px; border-left:2px dashed #3fd0f0;"></div>
+            <!-- hostiles -->
+            <div style="position:absolute; left:648px; top:246px; width:22px; height:22px; background:#2a130c; border:2px solid #ff5c33; transform:rotate(45deg); box-shadow:0 0 10px rgba(255,92,51,.5);"></div>
+            <div style="position:absolute; left:1180px; top:460px; width:22px; height:22px; background:#2a130c; border:2px solid #ff5c33; transform:rotate(45deg); box-shadow:0 0 10px rgba(255,92,51,.5);"></div>
+            <div style="position:absolute; left:1428px; top:412px; width:28px; height:28px; border:2px solid #3fd0f0; transform:rotate(45deg); animation:blink 2s infinite;"></div>
+            <sc-if value="{{ showFog }}" hint-placeholder-val="{{ true }}">
+              <div style="position:absolute; left:850px; top:140px; width:264px; height:274px; background:rgba(3,6,10,.86); border:2px solid #1b2836; background-image:repeating-linear-gradient(45deg, rgba(99,120,140,.08) 0 2px, transparent 2px 14px);"></div>
+              <div style="position:absolute; left:850px; top:550px; width:264px; height:214px; background:rgba(3,6,10,.86); border:2px solid #1b2836; background-image:repeating-linear-gradient(45deg, rgba(99,120,140,.08) 0 2px, transparent 2px 14px);"></div>
+              <div style="position:absolute; left:1300px; top:280px; width:334px; height:344px; background:rgba(3,6,10,.8); border:2px solid #1b2836; background-image:repeating-linear-gradient(45deg, rgba(99,120,140,.08) 0 2px, transparent 2px 14px);"></div>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- right sidebar -->
+        <div style="position:absolute; right:0; top:64px; bottom:0; width:400px; background:#070c12; border-left:1px solid #1d2f40; display:flex; flex-direction:column; padding:20px 20px 16px; gap:14px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">FIRETEAM SABLE — 6/6 ACTIVE</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <sc-for list="{{ squad }}" as="m" hint-placeholder-count="6">
+              <div style="display:flex; align-items:center; gap:12px; border:1px solid {{ m.bd }}; background:rgba(10,16,24,.9); padding:9px 12px;">
+                <div style="width:10px; height:10px; border-radius:50%; background:{{ m.hpc }}; flex:none;"></div>
+                <div style="width:92px; font-size:17px; font-weight:700; letter-spacing:1px; color:#e8f1f8;">{{ m.cs }}</div>
+                <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+                  <div style="height:4px; background:#101b2a;"><div style="width:{{ m.hp }}%; height:4px; background:{{ m.hpc }};"></div></div>
+                  <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#63788c;">{{ m.weapon }}</div>
+                </div>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:{{ m.stc }}; width:86px; text-align:right;">{{ m.status }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <!-- selected unit -->
+          <div style="border:1px solid #3fd0f0; background:rgba(63,208,240,.06); padding:14px 14px 12px; display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;"><div style="font-size:20px; font-weight:700; letter-spacing:1px; color:#8ce4ff;">SGT OKORO</div><div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#63788c;">BREACHER</div></div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:#8fa3b5;">K-12 SHOTGUN — 6/24 · CHARGES ×3</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <sc-for list="{{ abilities }}" as="a" hint-placeholder-count="6">
+                <div style="height:36px; padding:0 12px; border:1px solid {{ a.bd }}; background:{{ a.bg }}; display:flex; align-items:center;"><div style="font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#3fd0f0;">{{ a.k }}{{ a.q }}</div></div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- event log -->
+          <div style="flex:1; display:flex; flex-direction:column; gap:8px; border-top:1px solid #1d2f40; padding-top:12px; overflow:hidden;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:3px; color:#8fa3b5;">EVENT LOG</div>
+            <sc-for list="{{ events }}" as="e" hint-placeholder-count="5">
+              <div style="display:flex; gap:12px; align-items:baseline;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#41586e; flex:none;">{{ e.t }}</div>
+                <div style="font-size:15px; color:#a9bccb; line-height:1.35;">{{ e.x }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ redAlert }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 40%, rgba(255,60,20,.16)); pointer-events:none; z-index:4;"></div>
+        </sc-if>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;showFog&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Tactical view&quot; },
+  &quot;redAlert&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Tactical view&quot; }
+}">
+class Component extends DCLogic {
+  renderVals() {
+    const squad = [
+      { cs: "VANCE", role: "POINTMAN", weapon: "CQC-9 SMG", ammo: "24/120", hp: 100, armor: 80, status: "MOVING", stc: "#3fd0f0", sel: false },
+      { cs: "OKORO", role: "BREACHER", weapon: "K-12 SHOTGUN", ammo: "6/24", hp: 88, armor: 100, status: "STACKED", stc: "#8ce4ff", sel: true },
+      { cs: "REYES", role: "GUNNER", weapon: "M56 SAW", ammo: "87/200", hp: 100, armor: 60, status: "SUPPRESSING", stc: "#ff8b3d", sel: false },
+      { cs: "DUVAL", role: "MEDIC", weapon: "P-4 CARBINE", ammo: "18/90", hp: 52, armor: 40, status: "WOUNDED", stc: "#ff5c33", sel: false },
+      { cs: "KOWALSKI", role: "ENGINEER", weapon: "P-4 CARBINE", ammo: "20/90", hp: 100, armor: 80, status: "HOLDING", stc: "#63788c", sel: false },
+      { cs: "ASH", role: "MARKSMAN", weapon: "LR-77 GAUSS", ammo: "5/40", hp: 100, armor: 40, status: "OVERWATCH", stc: "#3fd0f0", sel: false }
+    ].map(function (m) {
+      return Object.assign({}, m, {
+        hpc: m.hp > 66 ? "#3fd0f0" : (m.hp > 40 ? "#ff8b3d" : "#ff5c33"),
+        bd: m.sel ? "#3fd0f0" : "#1d2f40"
+      });
+    });
+    const abilities = [
+      { k: "BRC", n: "BREACH", q: "×3", on: true },
+      { k: "FRG", n: "FRAG", q: "×2", on: false },
+      { k: "FLS", n: "FLASH", q: "×4", on: false },
+      { k: "SUP", n: "SUPPRESS", q: "", on: false },
+      { k: "OVW", n: "OVERWATCH", q: "", on: false },
+      { k: "STM", n: "STIM", q: "×1", on: false }
+    ].map(function (a) {
+      return Object.assign({}, a, {
+        bd: a.on ? "#3fd0f0" : "#243546",
+        bg: a.on ? "rgba(63,208,240,.12)" : "rgba(9,15,22,.9)"
+      });
+    });
+    const events = [
+      { t: "T+04:32", x: "OKORO placed breach charge — ARMORY hatch" },
+      { t: "T+04:18", x: "CONTACT — 1 hostile, MED BAY" },
+      { t: "T+03:51", x: "DUVAL wounded — corridor A crossfire" },
+      { t: "T+03:22", x: "AIRLOCK 2 breached — fireteam inserted" },
+      { t: "T+03:20", x: "Mission start — OP: CERBERUS KEY" }
+    ];
+    const roster = [
+      { cs: "OKORO", rank: "SGT", cls: "BREACHER", lvl: 6, xp: 80, st: "PROMOTION", stc: "#ff8b3d", sel: true },
+      { cs: "VANCE", rank: "CPL", cls: "POINTMAN", lvl: 5, xp: 45, st: "ACTIVE", stc: "#3fd0f0", sel: false },
+      { cs: "REYES", rank: "CPL", cls: "GUNNER", lvl: 5, xp: 62, st: "ACTIVE", stc: "#3fd0f0", sel: false },
+      { cs: "ASH", rank: "CPL", cls: "MARKSMAN", lvl: 5, xp: 71, st: "ACTIVE", stc: "#3fd0f0", sel: false },
+      { cs: "DUVAL", rank: "SPC", cls: "MEDIC", lvl: 4, xp: 30, st: "WOUNDED 3D", stc: "#ff5c33", sel: false },
+      { cs: "KOWALSKI", rank: "SPC", cls: "ENGINEER", lvl: 4, xp: 55, st: "ACTIVE", stc: "#3fd0f0", sel: false },
+      { cs: "NOVAK", rank: "SPC", cls: "GUNNER", lvl: 3, xp: 66, st: "WOUNDED 6D", stc: "#ff5c33", sel: false },
+      { cs: "LINDQVIST", rank: "SPC", cls: "MEDIC", lvl: 3, xp: 48, st: "ACTIVE", stc: "#3fd0f0", sel: false },
+      { cs: "MBEKI", rank: "PVT", cls: "RIFLEMAN", lvl: 2, xp: 20, st: "ACTIVE", stc: "#3fd0f0", sel: false },
+      { cs: "SATO", rank: "PVT", cls: "RIFLEMAN", lvl: 2, xp: 35, st: "TRAINING", stc: "#63788c", sel: false },
+      { cs: "OSEI", rank: "PVT", cls: "MARKSMAN", lvl: 2, xp: 25, st: "RESERVE", stc: "#63788c", sel: false },
+      { cs: "IBARRA", rank: "PVT", cls: "BREACHER", lvl: 1, xp: 10, st: "TRAINING", stc: "#63788c", sel: false }
+    ].map(function (r) {
+      return Object.assign({}, r, { bd: r.sel ? "#3fd0f0" : "#1d2f40" });
+    });
+    const missions = [
+      { code: "M-114", name: "CERBERUS KEY", type: "STORY", tc: "#3fd0f0", sys: "HELIOS GATE", threat: "HIGH", thc: "#ff5c33", rew: "REQ +800 · INTEL +12", sel: true },
+      { code: "M-115", name: "LINE HOLD", type: "DEFEND", tc: "#ff8b3d", sys: "KOVAC STATION", threat: "MED", thc: "#ff8b3d", rew: "REQ +450", sel: false },
+      { code: "M-116", name: "SALVAGE CLAIM", type: "ASSAULT", tc: "#ff5c33", sys: "TANNHAUSER DRIFT", threat: "LOW", thc: "#3fd0f0", rew: "REQ +300 · GEAR", sel: false }
+    ].map(function (m) {
+      return Object.assign({}, m, { bd: m.sel ? "#3fd0f0" : "#1d2f40" });
+    });
+    const weapons = [
+      { name: "K-12 SHOTGUN", cat: "PRIMARY", dmg: 9, rof: 3, acc: 5, hs: "HULL-SAFE", hsc: "#3fd0f0", eq: true },
+      { name: "CQC-9 SMG", cat: "PRIMARY", dmg: 5, rof: 9, acc: 6, hs: "HULL-SAFE", hsc: "#3fd0f0", eq: false },
+      { name: "P-4 CARBINE", cat: "PRIMARY", dmg: 6, rof: 6, acc: 7, hs: "HULL-SAFE", hsc: "#3fd0f0", eq: false },
+      { name: "M56 SAW", cat: "SUPPORT", dmg: 7, rof: 8, acc: 4, hs: "RISK: BREACH", hsc: "#ff8b3d", eq: false },
+      { name: "LR-77 GAUSS", cat: "LONG RANGE", dmg: 10, rof: 2, acc: 9, hs: "RISK: BREACH", hsc: "#ff8b3d", eq: false },
+      { name: "VL-1 VOID LANCE", cat: "HEAVY", dmg: 10, rof: 1, acc: 8, hs: "HULL BREACHER", hsc: "#ff5c33", eq: false }
+    ].map(function (w) {
+      return Object.assign({}, w, {
+        dmgW: w.dmg * 10, rofW: w.rof * 10, accW: w.acc * 10,
+        bd: w.eq ? "#3fd0f0" : "#1d2f40",
+        eqTag: w.eq ? "EQUIPPED" : ""
+      });
+    });
+    const defenses = [
+      { k: "CVR", n: "DEPLOYABLE COVER", q: "2/4 PLACED", on: true },
+      { k: "APM", n: "AP MINE", q: "4/6 PLACED", on: false },
+      { k: "SEN", n: "SENTRY GUN", q: "0/1 PLACED", on: false },
+      { k: "SEA", n: "DOOR SEALER", q: "2/2 USED", on: false }
+    ].map(function (d) {
+      return Object.assign({}, d, {
+        bd: d.on ? "#3fd0f0" : "#243546",
+        bg: d.on ? "rgba(63,208,240,.12)" : "rgba(9,15,22,.9)"
+      });
+    });
+    const defEvents = [
+      { t: "T−01:45", x: "PREP PHASE — defense placement unlocked" },
+      { t: "T−02:10", x: "Hull cutting detected — 2 sites, north + dock B" },
+      { t: "T−03:00", x: "Hegemony assault shuttle latched — outer ring" },
+      { t: "T−04:30", x: "Kovac Station perimeter lost — fall back to ring 2" }
+    ];
+    const okoroStats = [
+      { n: "AIM", v: 72 },
+      { n: "SPEED", v: 64 },
+      { n: "TECH", v: 58 },
+      { n: "BRAWN", v: 81 }
+    ];
+    return {
+      squad: squad,
+      roster: roster,
+      missions: missions,
+      weapons: weapons,
+      okoroStats: okoroStats,
+      defenses: defenses,
+      defEvents: defEvents,
+      abilities: abilities,
+      events: events,
+      showFog: this.props.showFog ?? true,
+      redAlert: this.props.redAlert ?? false
+    };
+  }
+}
+</script>
+</body>
+</html>
