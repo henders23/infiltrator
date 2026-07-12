@@ -58,6 +58,16 @@ const NOISE_RADIUS = 9;
 const GUNFIRE_NOISE = 6;
 const OVERWATCH_COS = 0.5; // ~120° cone
 
+// hull / decompression
+const DIFF_RATE = 15; // pressure diffusion coefficient (per pass; clamped for stability)
+const DIFF_PASSES = 4; // diffusion sub-steps per tick — a room vacuums in a few seconds
+const DECOMP_DMG = 40; // damage/sec at the breach while air is still rushing out
+const ASPHYX_DMG = 20; // damage/sec in low-oxygen vacuum
+const PULL_SPEED = 3.0; // tiles/sec dragged toward the breach, at the breach (< move speed: run!)
+const PULL_RADIUS = 6; // pull + violent damage fall off to zero past this many tiles from a breach
+const VIOLENT_MIN = 0.12; // pressure above this (and connected) = air still rushing
+const VACUUM_MAX = 0.5; // pressure below this = not enough oxygen to breathe (hypoxia)
+
 export class World {
   readonly grid: Grid;
   readonly units: Unit[];
@@ -69,11 +79,20 @@ export class World {
   readonly blasts: Blast[] = [];
   /** Tile indices of doors currently open (all doors start closed). */
   readonly openDoors = new Set<number>();
+  /** Tile indices of hull breaches (holes to space). Sources of decompression. */
+  readonly breaches = new Set<number>();
+  /** Per-tile atmospheric pressure, 0 (vacuum) .. 1 (full atmo). */
+  readonly pressure: Float32Array;
+  private readonly pressureScratch: Float32Array;
+  /** Tiles currently connected to a breach through open air (the active vent front). */
+  readonly venting = new Set<number>();
 
   constructor(grid: Grid, units: Unit[], seed = 1) {
     this.grid = grid;
     this.units = units;
     this.rng = makeRng(seed);
+    this.pressure = new Float32Array(grid.width * grid.height).fill(1);
+    this.pressureScratch = new Float32Array(grid.width * grid.height);
     this.revealFog();
   }
 
@@ -88,6 +107,22 @@ export class World {
   /** Blocks line of sight: walls and closed doors. */
   opaqueAt = (x: number, y: number): boolean => this.grid.isWall(x, y) || this.isDoorClosed(x, y);
 
+  /** A wall on the ship's exterior — breaching it vents to space (vs an interior bulkhead). */
+  isHullWall(x: number, y: number): boolean {
+    if (!this.grid.isWall(x, y)) return false;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      if (!this.grid.inBounds(x + dx, y + dy)) return true; // touches the outside
+    }
+    return false;
+  }
+  pressureAt(x: number, y: number): number {
+    return this.grid.inBounds(x, y) ? this.pressure[this.grid.idx(x, y)] : 0;
+  }
+  /** Air still rushing out here (dangerous pull + fast damage). */
+  isViolent(x: number, y: number): boolean {
+    return this.venting.has(this.grid.idx(x, y)) && this.pressureAt(x, y) > VIOLENT_MIN;
+  }
+
   step(dt: number): void {
     this.time += dt;
     for (const u of this.units) {
@@ -95,6 +130,7 @@ export class World {
     }
     this.updateAI(dt);
     this.runCombat(dt);
+    this.updateHull(dt);
     this.decayAndBleed(dt);
     this.prune();
     this.revealFog();
@@ -114,6 +150,14 @@ export class World {
         s.timer -= dt;
         if (s.timer <= 0) {
           this.forceDoor(s.door, u);
+          u.order.step++;
+        }
+        break;
+      case 'hullcharge':
+        this.faceToward(u, s.wall.x + 0.5, s.wall.y + 0.5);
+        s.timer -= dt;
+        if (s.timer <= 0) {
+          this.openHullBreach(s.wall, u);
           u.order.step++;
         }
         break;
@@ -219,6 +263,160 @@ export class World {
       }
     }
     this.makeNoise(target.x + 0.5, target.y + 0.5);
+  }
+
+  private openHullBreach(wall: { x: number; y: number }, by: Unit): void {
+    // a charge tears a ~3-wide hole along the hull, so a room actually vacuums fast
+    this.breaches.add(this.grid.idx(wall.x, wall.y));
+    const horizontal = this.isHullWall(wall.x + 1, wall.y) || this.isHullWall(wall.x - 1, wall.y);
+    for (const d of [-1, 1]) {
+      const wx = horizontal ? wall.x + d : wall.x;
+      const wy = horizontal ? wall.y : wall.y + d;
+      if (this.isHullWall(wx, wy)) this.breaches.add(this.grid.idx(wx, wy));
+    }
+    this.blasts.push({ time: this.time, pos: { x: wall.x + 0.5, y: wall.y + 0.5 }, radius: 3, kind: 'breach' });
+    this.events.push({ time: this.time, kind: 'breach', text: `${by.name} blows the hull — compartment venting!` });
+    this.makeNoise(wall.x + 0.5, wall.y + 0.5);
+  }
+
+  // ── decompression ─────────────────────────────────────────────────────────
+  /** Drain pressure from every tile connected to a breach, and punish anyone caught. */
+  private updateHull(dt: number): void {
+    if (this.breaches.size === 0) return;
+
+    // multi-source flood from the breaches through open air (walls + CLOSED doors bound it)
+    this.venting.clear();
+    const queue: number[] = [];
+    for (const b of this.breaches) {
+      const bx = b % this.grid.width;
+      const by = Math.floor(b / this.grid.width);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const nx = bx + dx;
+        const ny = by + dy;
+        if (this.ventPassable(nx, ny)) {
+          const ni = this.grid.idx(nx, ny);
+          if (!this.venting.has(ni)) {
+            this.venting.add(ni);
+            queue.push(ni);
+          }
+        }
+      }
+    }
+    for (let h = 0; h < queue.length; h++) {
+      const cx = queue[h] % this.grid.width;
+      const cy = Math.floor(queue[h] / this.grid.width);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const nx = cx + dx;
+        const ny = cy + dy;
+        if (!this.ventPassable(nx, ny)) continue;
+        const ni = this.grid.idx(nx, ny);
+        if (!this.venting.has(ni)) {
+          this.venting.add(ni);
+          queue.push(ni);
+        }
+      }
+    }
+
+    // diffuse pressure: air flows toward lower-pressure neighbours; breaches are a 0-sink,
+    // walls and CLOSED doors don't conduct (so a sealed room keeps — or traps — its air).
+    // Sub-step so a whole room vacuums in a handful of seconds while staying stable.
+    const coeff = Math.min(0.24, DIFF_RATE * dt);
+    for (let pass = 0; pass < DIFF_PASSES; pass++) this.diffusePressure(coeff);
+
+    // punish exposed units. The violent pull + decompression damage are strongest AT the
+    // breach and fall to nothing past PULL_RADIUS, so you get sucked out standing next to
+    // the hole — but a corridor away you just breathe thinning air (and can still flee).
+    for (const u of this.units) {
+      if (!u.alive || u.suit) continue;
+      const p = this.pressureAt(Math.floor(u.pos.x), Math.floor(u.pos.y));
+      const connected = this.venting.has(this.grid.idx(Math.floor(u.pos.x), Math.floor(u.pos.y)));
+      let violent = false;
+      if (connected && p > VIOLENT_MIN) {
+        const distToBreach = this.nearestBreachDist(u.pos.x, u.pos.y);
+        const falloff = Math.max(0, 1 - distToBreach / PULL_RADIUS);
+        if (falloff > 0) {
+          violent = true;
+          this.pullTowardBreach(u, dt, falloff);
+          u.hp -= DECOMP_DMG * falloff * dt;
+        }
+      }
+      if (p < VACUUM_MAX) u.hp -= ASPHYX_DMG * dt;
+      if (u.hp <= 0 && u.alive) this.killByHull(u, violent ? 'was blown out the breach' : 'asphyxiated');
+    }
+  }
+
+  private nearestBreachDist(fx: number, fy: number): number {
+    let best = Infinity;
+    for (const b of this.breaches) {
+      const bx = (b % this.grid.width) + 0.5;
+      const by = Math.floor(b / this.grid.width) + 0.5;
+      best = Math.min(best, tileDist(fx, fy, bx, by));
+    }
+    return best;
+  }
+
+  /** A tile air can flow into: in-bounds, not a wall, not a closed door. */
+  private ventPassable(x: number, y: number): boolean {
+    return this.grid.inBounds(x, y) && !this.grid.isWall(x, y) && !this.isDoorClosed(x, y);
+  }
+
+  /** One double-buffered diffusion pass over the pressure field. */
+  private diffusePressure(coeff: number): void {
+    const w = this.grid.width;
+    const P = this.pressure;
+    const N = this.pressureScratch;
+    N.set(P);
+    for (let y = 0; y < this.grid.height; y++) {
+      for (let x = 0; x < w; x++) {
+        if (this.grid.isWall(x, y) || this.isDoorClosed(x, y)) continue;
+        const idx = y * w + x;
+        const p = P[idx];
+        let flux = 0;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (!this.grid.inBounds(nx, ny)) continue;
+          const ni = ny * w + nx;
+          if (this.breaches.has(ni)) flux += 0 - p; // open to space
+          else if (!this.grid.isWall(nx, ny) && !this.isDoorClosed(nx, ny)) flux += P[ni] - p;
+        }
+        N[idx] = Math.max(0, Math.min(1, p + coeff * flux));
+      }
+    }
+    P.set(N);
+  }
+
+  private pullTowardBreach(u: Unit, dt: number, strength: number): void {
+    // drift toward the nearest breach; blocked by walls/closed doors (you hit the bulkhead)
+    let best: { x: number; y: number } | null = null;
+    let bestD = Infinity;
+    for (const b of this.breaches) {
+      const bx = (b % this.grid.width) + 0.5;
+      const by = Math.floor(b / this.grid.width) + 0.5;
+      const d = tileDist(u.pos.x, u.pos.y, bx, by);
+      if (d < bestD) {
+        bestD = d;
+        best = { x: bx, y: by };
+      }
+    }
+    if (!best) return;
+    const dx = best.x - u.pos.x;
+    const dy = best.y - u.pos.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const nx = u.pos.x + (dx / d) * PULL_SPEED * strength * dt;
+    const ny = u.pos.y + (dy / d) * PULL_SPEED * strength * dt;
+    if (!this.grid.isWall(Math.floor(nx), Math.floor(ny)) && !this.isDoorClosed(Math.floor(nx), Math.floor(ny))) {
+      u.pos.x = nx;
+      u.pos.y = ny;
+    }
+  }
+
+  private killByHull(u: Unit, cause: string): void {
+    u.hp = 0;
+    u.alive = false;
+    u.downed = false;
+    u.combat = 'idle';
+    this.events.push({ time: this.time, kind: 'kill', text: `${u.name} ${cause}.` });
   }
 
   /** Loud events (breach, grenade, gunfire) wake idle defenders within earshot. */

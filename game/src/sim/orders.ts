@@ -14,6 +14,8 @@ export type Step =
   | { kind: 'move'; path: Tile[]; index: number }
   /** Loudly force a door: instant open + stun beyond it, but makes noise. `timer` counts down. */
   | { kind: 'breach'; door: Tile; timer: number }
+  /** Blow a charge on a HULL wall to vent the compartment to vacuum. Needs a breaching weapon. */
+  | { kind: 'hullcharge'; wall: Tile; timer: number }
   /** Throw a grenade at a tile. `fuse` counts down after `thrown`. */
   | { kind: 'grenade'; target: Tile; gtype: GrenadeType; fuse: number; thrown: boolean }
   /** Terminal standing posture: hold and watch an arc, firing only within it. */
@@ -28,6 +30,7 @@ export interface Order {
 
 export const BREACH_TIME = 0.6; // seconds to force a door
 export const GRENADE_FUSE = 0.9; // seconds from throw to detonation
+export const HULLCHARGE_TIME = 1.0; // seconds to set + blow a hull charge
 
 export function holdOrder(): Order {
   return { steps: [{ kind: 'hold' }], step: 0 };

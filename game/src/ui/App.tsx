@@ -4,12 +4,13 @@ import { makeDemoMission } from '../content/maps';
 import { CSS, FONT_DISPLAY, FONT_MONO } from './theme';
 import { useGame } from './store';
 
-const ORDER_MODES: { mode: OrderMode; label: string; title: string }[] = [
+const ORDER_MODES: { mode: OrderMode; label: string; title: string; needsBreaching?: boolean }[] = [
   { mode: 'move', label: 'MOVE', title: 'Move / path (default)' },
   { mode: 'breach', label: 'BREACH', title: 'Breach a door — loud, stuns those beyond (B)' },
   { mode: 'flash', label: 'FLASH', title: 'Throw a flashbang — stuns, no damage (F)' },
   { mode: 'frag', label: 'FRAG', title: 'Throw a frag — damages in radius (G)' },
   { mode: 'overwatch', label: 'WATCH', title: 'Set overwatch on an arc (O)' },
+  { mode: 'vent', label: 'VENT', title: 'Blow a hull wall to vent the room to vacuum — needs a breaching weapon (V)', needsBreaching: true },
 ];
 
 export function App() {
@@ -55,6 +56,8 @@ export function App() {
         engine.setOrderMode('frag');
       } else if (k === 'o') {
         engine.setOrderMode('overwatch');
+      } else if (k === 'v') {
+        engine.setOrderMode('vent');
       } else if (k === 'h') {
         engine.toggleHoldFire();
       } else if (ev.key === 'Tab') {
@@ -142,22 +145,31 @@ export function App() {
                 STRESS {selected.stress}
               </span>
             </div>
+            {selected.inVacuum && (
+              <div style={{ ...styles.selRow, color: CSS.red, fontWeight: 700 }}>⚠ EXPOSED TO VACUUM</div>
+            )}
+            {selected.suit && (
+              <div style={{ ...styles.selRow, color: CSS.cyan }}>EVA SUIT — vacuum-safe</div>
+            )}
           </div>
         )}
 
         {/* order-mode palette — what the next click on the deck does */}
         {selected && (
           <div style={styles.palette}>
-            {ORDER_MODES.map((m) => (
-              <button
-                key={m.mode}
-                className={'mode' + (snapshot?.orderMode === m.mode ? ' on' : '')}
-                onClick={() => engine?.setOrderMode(m.mode)}
-                title={m.title}
-              >
-                {m.label}
-              </button>
-            ))}
+            {ORDER_MODES.map((m) => {
+              const gated = m.needsBreaching && selected.hullSafety !== 'breaching';
+              return (
+                <button
+                  key={m.mode}
+                  className={'mode' + (snapshot?.orderMode === m.mode ? ' on' : '') + (gated ? ' gated' : '')}
+                  onClick={() => engine?.setOrderMode(m.mode)}
+                  title={gated ? 'Needs a breaching weapon (SAW/gauss)' : m.title}
+                >
+                  {m.label}
+                </button>
+              );
+            })}
             <button
               className={'mode' + (selected.weaponsFree ? '' : ' warn')}
               onClick={() => engine?.toggleHoldFire()}
@@ -207,11 +219,11 @@ export function App() {
         <div style={styles.help}>
           <div><span className="k">Click soldier</span> / <span className="k">1–4</span> select · <span className="k">Tab</span> next alert</div>
           <div><span className="k">Left-click</span> path (auto) · <span className="k">Shift</span> add leg</div>
-          <div><span className="k">B</span> breach door · <span className="k">F</span> flash · <span className="k">G</span> frag</div>
-          <div><span className="k">O</span> overwatch · <span className="k">H</span> hold-fire · <span className="k">C</span> clear</div>
+          <div><span className="k">B</span> breach · <span className="k">F</span> flash · <span className="k">G</span> frag · <span className="k">O</span> overwatch</div>
+          <div><span className="k">V</span> vent hull · <span className="k">H</span> hold-fire · <span className="k">C</span> clear</div>
           <div><span className="k">Space</span> execute/pause · <span className="k">Wheel</span> zoom · <span className="k">Mid-drag</span> pan</div>
           <div style={{ color: CSS.muted, marginTop: 4 }}>
-            Stack → flash → breach → clear. Orders persist until re-tasked.
+            Vent a room to kill everyone in it — including your own. Doors contain it.
           </div>
         </div>
 
@@ -281,6 +293,7 @@ const globalCss = `
   .mode:hover { color: ${CSS.cyan}; border-color: ${CSS.cyanDim}; }
   .mode.on { background: #0f2230; color: ${CSS.cyan}; border-color: ${CSS.cyan}; }
   .mode.warn { color: ${CSS.orange}; border-color: ${CSS.orange}; }
+  .mode.gated { opacity: 0.4; }
   .unit { display: flex; align-items: center; gap: 10px; padding: 9px 14px;
     border-bottom: 1px solid ${CSS.line}; cursor: pointer; }
   .unit:hover { background: #0f1826; }

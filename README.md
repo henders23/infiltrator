@@ -12,7 +12,7 @@ violence to four warring powers in a collapsed star cluster.
 
 | Path | What it is |
 |---|---|
-| **`game/`** | The **playable game** (TypeScript + PixiJS + React). Implements build-plan **M0–M3**: plan-then-execute movement with persistent orders, combat (LOS, cover, suppression, death), and entries (breach doors, flash/frag, overwatch). `cd game && npm install && npm run dev`. |
+| **`game/`** | The **playable game** (TypeScript + PixiJS + React). Implements build-plan **M0–M4**: plan-then-execute movement, combat (LOS, cover, suppression, death), entries (breach doors, flash/frag, overwatch), and hull venting (decompression, pressure, suits). `cd game && npm install && npm run dev`. |
 | **`docs/DESIGN.md`** | Full game design doc — story, the **four factions**, tactical & hull-venting systems, the survivor/roster loop, strategic layer, difficulty. |
 | **`docs/BUILD_PLAN.md`** | Engineering roadmap — tech stack, architecture, **M0–M10 milestones**, testing, risks. |
 | **`slice/`** | A **dependency-free** proof of the plan-then-execute control model (no build step). Open `slice/index.html`. |
@@ -24,7 +24,7 @@ violence to four warring powers in a collapsed star cluster.
    Execute. Soldiers you don't re-task hold their last order (persistent orders). (No toolchain? The
    `slice/index.html` shows the same core loop with zero setup.)
 2. **Read `docs/DESIGN.md`** — especially §3 (the four factions) and §5 (the survivor loop).
-3. **Read `docs/BUILD_PLAN.md`** — the milestone plan; M0–M3 are done (`game/`), M4 (hull venting) is next.
+3. **Read `docs/BUILD_PLAN.md`** — the milestone plan; M0–M4 are done (`game/`), M5 (mission objectives & defense) is next.
 
 ## The one-paragraph pitch
 
@@ -37,5 +37,5 @@ come to know by name. The hull itself is a loaded weapon — breach it and vacuu
 Survive the contract treadmill long enough to keep a few veterans alive, and you might still be
 standing when the Choir finally sings.
 
-*Status: design + build plan complete; playable control slice; production build at M0–M3 (plan-then-execute
-movement, combat, and breach/flash/overwatch entries) in `game/`. Next: M4 — hull venting.*
+*Status: design + build plan complete; playable control slice; production build at M0–M4 (plan-then-execute
+movement, combat, breach/flash/overwatch entries, and hull venting) in `game/`. Next: M5 — mission objectives & defense mode.*

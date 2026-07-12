@@ -37,6 +37,8 @@ export interface Unit {
   stunnedUntil: number;
   /** Weapons-free (fires on sight) vs hold-fire (won't initiate). */
   weaponsFree: boolean;
+  /** Sealed EVA suit — immune to decompression pull, spacing, and asphyxiation. */
+  suit: boolean;
   /** Seconds until this unit may fire again. */
   fireCooldown: number;
   /** Hostile AI posture + reaction timer + current target. */
@@ -71,6 +73,7 @@ export function makeUnit(init: Partial<Unit> & Pick<Unit, 'name' | 'faction'>): 
     suppressedUntil: init.suppressedUntil ?? 0,
     stunnedUntil: init.stunnedUntil ?? 0,
     weaponsFree: init.weaponsFree ?? true,
+    suit: init.suit ?? false,
     fireCooldown: init.fireCooldown ?? 0,
     combat: init.combat ?? 'idle',
     combatTimer: init.combatTimer ?? 0,

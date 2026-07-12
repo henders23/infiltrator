@@ -1,9 +1,10 @@
-# INFILTRATOR — game (M0–M3)
+# INFILTRATOR — game (M0–M4)
 
 The production build of INFILTRATOR. This directory implements **M0** (scaffold +
 deterministic loop), **M1** (plan-then-execute movement with persistent orders),
-**M2** (combat: LOS, cover, shooting, suppression, death), and **M3** (entries: breachable
-doors, flash/frag grenades, overwatch, hold-fire, noise) from
+**M2** (combat: LOS, cover, shooting, suppression, death), **M3** (entries: breachable
+doors, flash/frag grenades, overwatch, hold-fire, noise), and **M4** (hull venting:
+decompression, pressure, suits) from
 [`../docs/BUILD_PLAN.md`](../docs/BUILD_PLAN.md). It rebuilds the control model proven in
 [`../slice`](../slice) on the real architecture.
 
@@ -28,6 +29,7 @@ Other scripts: `npm run build` (typecheck + production build), `npm run preview`
 | `B` then click a door | **Breach** it (loud, stuns the room beyond) |
 | `F` / `G` then click a tile | Throw a **flashbang** / **frag** grenade there |
 | `O` then click | Set **overwatch** on that arc (fires only within the cone) |
+| `V` then click a hull wall | **Vent** — blow the hull to decompress the room (needs a breaching weapon; suits survive) |
 | `H` | Toggle **hold-fire / weapons-free** for the selected soldier |
 | Right-click / `C` | Clear the selected soldier's order |
 | `Space` | Execute ↔ pause · Wheel zoom · **Middle-drag** pan |
@@ -38,12 +40,18 @@ entry: **stack → flash → breach → clear.** Closed doors block movement and
 opened (quietly by walking through, or loudly by breaching — which stuns those beyond but
 makes noise that wakes nearby defenders). Auto-pauses on first contact and on a casualty.
 
+**Venting (M4):** give a soldier with a breaching weapon (the SAW/gauss) the `V` order on an
+exterior hull wall to blow it open. The compartment decompresses — a violent pull + damage at
+the breach, then lethal vacuum — killing everyone inside without a suit, **including your own**.
+Closed doors contain the vent; open doors spread it; an EVA suit makes you vacuum-safe (the
+demo's SAW gunner has one). Win a room you can't take — and learn to fear doing it.
+
 ## Architecture (see `BUILD_PLAN.md` §2)
 
 ```
 src/
   sim/        # deterministic, headless — NO Pixi/DOM/wall-clock/Math.random.
-              #   grid · pathfinding (A*) · los · cover · combat · orders (plans) · unit · world · rng
+              #   grid · pathfinding (A*) · los · cover · combat · orders (plans) · unit · world (+hull) · rng
   game/       # engine: Pixi render, pan/zoom camera, input, fixed-timestep loop
   render/     # (draw helpers live in game/engine for now; split out as they grow)
   ui/         # React "1c CONSOLE" shell + zustand store + theme tokens
@@ -64,11 +72,13 @@ ratings, armor/HP, suppression (pins movement) and stress, downs + bleed-out + d
 hostile AI (idle → alert → engage with a reaction delay), tracers; **entries** —
 breachable doors that block move + sight, quiet-open vs loud breach (stuns the room),
 flash/frag grenades, overwatch arcs with reaction fire, hold-fire, noise that wakes
-defenders, a waypoint order-mode palette and a needs-attention selector; auto-pause on
-first contact and on a casualty. **29 deterministic sim tests.**
+defenders, a waypoint order-mode palette and a needs-attention selector; **hull venting** —
+exterior hull walls, a hull-charge gated on breaching weapons, diffusing pressure (doors
+contain/spread/trap vacuum), distance-falloff decompression pull + damage + asphyxiation,
+and EVA-suit immunity; auto-pause on first contact and on a casualty. **35 deterministic sim tests.**
 
-**Not yet (later milestones):** hull venting (M4), mission objectives & defense mode
-(M5), the strategic layer (M6), the survivor/roster loop with stabilize/drag (M7), the
-four faction AIs and detailed deck-plan art (M8+). Enemies here are simple hold-and-engage
-defenders; distinct faction doctrines come in M8. Fog is still a radius stub (LOS-gated
-fog is a later refinement) — combat sight already respects walls and closed doors.
+**Not yet (later milestones):** mission objectives & defense mode with deployable
+door-sealers (M5), the strategic layer (M6), the survivor/roster loop with stabilize/drag
+(M7), the four faction AIs and detailed deck-plan art (M8+). Enemies here are simple
+hold-and-engage defenders; distinct faction doctrines come in M8. Fog is still a radius stub
+(LOS-gated fog is a later refinement) — combat sight already respects walls and closed doors.

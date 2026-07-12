@@ -67,8 +67,9 @@ export function makeDemoMission(): Mission {
       name: 'SPC. DANN',
       faction: 'friendly',
       pos: { x: 3.5, y: 10.5 },
-      weapon: 'saw', // hull-breaching — big damage, will crack a hull in M4
+      weapon: 'saw', // hull-breaching — the squad's hull specialist (can VENT)
       armor: 16,
+      suit: true, // EVA suit: can vent a room and walk in after
     }),
     // defenders hold in the rooms with lighter armour; AI wakes on contact/noise.
     // one sits just behind the upper door — a breach there stuns him.

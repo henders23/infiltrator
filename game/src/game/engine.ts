@@ -13,6 +13,7 @@ import {
   GrenadeType,
   GRENADE_FUSE,
   holdOrder,
+  HULLCHARGE_TIME,
   isPlanComplete,
   moveOrder,
   Step,
@@ -28,7 +29,7 @@ const FIXED_DT = 1 / 60; // deterministic sim step
 const EMIT_INTERVAL = 0.1; // throttle UI snapshots to ~10 Hz
 
 /** What the next left-click on the deck means for the selected soldier. */
-export type OrderMode = 'move' | 'breach' | 'flash' | 'frag' | 'overwatch';
+export type OrderMode = 'move' | 'breach' | 'flash' | 'frag' | 'overwatch' | 'vent';
 
 export interface UnitSnapshot {
   id: number;
@@ -44,6 +45,8 @@ export interface UnitSnapshot {
   stress: number;
   stunned: boolean;
   weaponsFree: boolean;
+  suit: boolean;
+  inVacuum: boolean;
   weapon: string;
   hullSafety: string;
   armor: number;
@@ -75,6 +78,7 @@ export class Engine {
   private readonly stage = new Container(); // pannable/zoomable world
   private readonly deckG = new Graphics();
   private readonly doorsG = new Graphics(); // door state (redrawn each frame)
+  private readonly hullG = new Graphics(); // pressure tint + breaches (redrawn each frame)
   private readonly fogG = new Graphics();
   private readonly planG = new Graphics();
   private readonly unitLayer = new Container();
@@ -116,7 +120,7 @@ export class Engine {
     });
     host.appendChild(this.app.canvas);
 
-    this.stage.addChild(this.deckG, this.doorsG, this.fogG, this.planG, this.unitLayer, this.fxG);
+    this.stage.addChild(this.deckG, this.doorsG, this.hullG, this.fogG, this.planG, this.unitLayer, this.fxG);
     this.app.stage.addChild(this.stage);
 
     this.drawDeck();
@@ -273,6 +277,10 @@ export class Engine {
           this.issueOverwatch(tile.x, tile.y);
           this.setOrderMode('move');
           break;
+        case 'vent':
+          this.issueVent(tile.x, tile.y);
+          this.setOrderMode('move');
+          break;
       }
     }
   }
@@ -372,6 +380,11 @@ export class Engine {
     this.selectedId = id;
     this.issueOverwatch(tx, ty);
   }
+  orderVent(id: number, dx: number, dy: number): void {
+    if (this.world.unit(id)?.faction !== 'friendly') return;
+    this.selectedId = id;
+    this.issueVent(dx, dy);
+  }
   clearSelectedOrder(): void {
     const u = this.selected();
     if (u) {
@@ -443,6 +456,31 @@ export class Engine {
     const u = this.selected();
     if (!u || !this.mission.grid.inBounds(tx, ty) || this.mission.grid.isWall(tx, ty)) return;
     this.appendStep(u, { kind: 'grenade', target: { x: tx, y: ty }, gtype, fuse: GRENADE_FUSE, thrown: false });
+    this.emit();
+  }
+
+  /** Rig a hull charge on an exterior wall to vent the compartment. Needs a breaching weapon. */
+  private issueVent(dx: number, dy: number): void {
+    const u = this.selected();
+    if (!u) return;
+    if (!this.world.isHullWall(dx, dy)) {
+      this.log.push('Vent: target an exterior hull wall.');
+      this.emit();
+      return;
+    }
+    if (weaponOf(u.weapon).hullSafety !== 'breaching') {
+      this.log.push(`${u.name} can't cut the hull — needs a breaching weapon (SAW/gauss).`);
+      this.emit();
+      return;
+    }
+    const from = this.planEndTile(u);
+    const approach = this.approachTile(dx, dy, from);
+    if (!approach) return;
+    if (approach.x !== from.x || approach.y !== from.y) {
+      const seg = findPath(this.mission.grid, from.x, from.y, approach.x, approach.y);
+      if (seg && seg.length) this.appendStep(u, { kind: 'move', path: seg, index: 0 });
+    }
+    this.appendStep(u, { kind: 'hullcharge', wall: { x: dx, y: dy }, timer: HULLCHARGE_TIME });
     this.emit();
   }
 
@@ -551,10 +589,69 @@ export class Engine {
   // ── per-frame render ────────────────────────────────────────────────────────
   private drawFrame(): void {
     this.drawDoors();
+    this.drawHull();
     this.drawFog();
     this.drawPlan();
     this.drawUnits();
     this.drawFx();
+  }
+
+  /** Pressure tint (venting → vacuum), hull breaches, and the pull toward them. */
+  private drawHull(): void {
+    const g = this.hullG;
+    g.clear();
+    if (this.world.breaches.size === 0) return;
+    const grid = this.mission.grid;
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        if (grid.isWall(x, y)) continue;
+        const p = this.world.pressureAt(x, y);
+        if (p > 0.97) continue;
+        // low pressure → blue vacuum tint; deeper as pressure drops
+        const alpha = (1 - p) * 0.6;
+        g.rect(x * TILE_PX, y * TILE_PX, TILE_PX, TILE_PX).fill({ color: 0x0b3b5a, alpha });
+      }
+    }
+    // pull streaks from actively-venting tiles toward the nearest breach
+    for (const idx of this.world.venting) {
+      const x = idx % grid.width;
+      const y = Math.floor(idx / grid.width);
+      if (!this.world.isViolent(x, y)) continue;
+      const b = this.nearestBreachPx(x + 0.5, y + 0.5);
+      if (!b) continue;
+      const cx = (x + 0.5) * TILE_PX;
+      const cy = (y + 0.5) * TILE_PX;
+      const dx = b.x - cx;
+      const dy = b.y - cy;
+      const d = Math.hypot(dx, dy) || 1;
+      g.moveTo(cx, cy)
+        .lineTo(cx + (dx / d) * TILE_PX * 0.5, cy + (dy / d) * TILE_PX * 0.5)
+        .stroke({ width: 1, color: 0x8fd8ff, alpha: 0.35 });
+    }
+    // the breaches themselves — a hot ragged glow
+    for (const idx of this.world.breaches) {
+      const bx = (idx % grid.width + 0.5) * TILE_PX;
+      const by = (Math.floor(idx / grid.width) + 0.5) * TILE_PX;
+      g.circle(bx, by, TILE_PX * 0.5).fill({ color: 0x000000, alpha: 0.9 });
+      g.circle(bx, by, TILE_PX * 0.5).stroke({ width: 2, color: COLORS.orange });
+      g.star(bx, by, 6, TILE_PX * 0.42, TILE_PX * 0.2).stroke({ width: 1.5, color: COLORS.red, alpha: 0.8 });
+    }
+  }
+
+  private nearestBreachPx(fx: number, fy: number): { x: number; y: number } | null {
+    const grid = this.mission.grid;
+    let best: { x: number; y: number } | null = null;
+    let bestD = Infinity;
+    for (const idx of this.world.breaches) {
+      const bx = idx % grid.width + 0.5;
+      const by = Math.floor(idx / grid.width) + 0.5;
+      const d = Math.hypot(fx - bx, fy - by);
+      if (d < bestD) {
+        bestD = d;
+        best = { x: bx * TILE_PX, y: by * TILE_PX };
+      }
+    }
+    return best;
   }
 
   /** Tracers + muzzle flashes for shots fired in the last handful of frames. */
@@ -655,6 +752,11 @@ export class Engine {
         g.moveTo(bx - r, by - r).lineTo(bx + r, by + r).moveTo(bx + r, by - r).lineTo(bx - r, by + r)
           .stroke({ width: 2.5, color: COLORS.orange, alpha });
         g.circle(bx, by, r).stroke({ width: 1.5, color: COLORS.orange, alpha });
+      } else if (s.kind === 'hullcharge') {
+        const wx = (s.wall.x + 0.5) * TILE_PX;
+        const wy = (s.wall.y + 0.5) * TILE_PX;
+        g.star(wx, wy, 6, TILE_PX * 0.4, TILE_PX * 0.18).stroke({ width: 2, color: COLORS.red, alpha });
+        g.circle(wx, wy, TILE_PX * 0.44).stroke({ width: 1.5, color: COLORS.red, alpha: alpha * 0.7 });
       } else if (s.kind === 'grenade') {
         const tx = (s.target.x + 0.5) * TILE_PX;
         const ty = (s.target.y + 0.5) * TILE_PX;
@@ -728,6 +830,10 @@ export class Engine {
             .stroke({ width: 2.5, color: 0xffffff, alpha: 0.85 });
         }
       }
+      // EVA suit — a steel ring; exposed-to-vacuum — a red asphyxiation ring
+      if (u.suit) view.ring.circle(0, 0, TILE_PX * 0.5).stroke({ width: 1.5, color: 0x8fd8ff, alpha: 0.6 });
+      else if (this.world.pressureAt(Math.floor(u.pos.x), Math.floor(u.pos.y)) < 0.3)
+        view.ring.circle(0, 0, TILE_PX * 0.5).stroke({ width: 2, color: COLORS.red, alpha: 0.8 });
 
       view.body.circle(0, 0, TILE_PX * 0.3).fill(color);
       // facing tick
@@ -769,6 +875,8 @@ export class Engine {
       stress: Math.round(u.stress),
       stunned: isStunned(u, this.world.time),
       weaponsFree: u.weaponsFree,
+      suit: u.suit,
+      inVacuum: !u.suit && this.world.pressureAt(Math.floor(u.pos.x), Math.floor(u.pos.y)) < 0.3,
       weapon: weaponOf(u.weapon).name,
       hullSafety: weaponOf(u.weapon).hullSafety,
       armor: u.armor,
@@ -791,7 +899,12 @@ export class Engine {
     if (u.downed) return 'DOWN — BLEEDING';
     if (u.faction === 'hostile') return this.isVisible(u) ? 'CONTACT' : 'UNKNOWN';
     if (isStunned(u, this.world.time)) return 'STUNNED';
+    const tx = Math.floor(u.pos.x);
+    const ty = Math.floor(u.pos.y);
+    if (!u.suit && this.world.pressureAt(tx, ty) < 0.3) return 'SUFFOCATING';
+    if (!u.suit && this.world.isViolent(tx, ty)) return 'VENTING!';
     const step = currentStep(u.order);
+    if (step.kind === 'hullcharge') return 'RIGGING HULL';
     if (step.kind === 'breach') return 'BREACHING';
     if (step.kind === 'grenade') return step.gtype === 'flash' ? 'FLASH OUT' : 'FRAG OUT';
     if (step.kind === 'overwatch') return u.weaponsFree ? 'OVERWATCH' : 'OW · HOLD';

@@ -117,12 +117,16 @@ adjust to your available time. **M0–M1 is what the `slice/` prototype foreshad
   flash/frag grenades; overwatch arcs with reaction fire; hold-fire; noise that wakes defenders; a
   waypoint order-mode palette and a needs-attention selector. Drag-downed-ally lands with M7's medic.)*
 
-### M4 — Hull & venting  · L  ← *next*
+### M4 — Hull & venting  · L  ✅ **done — see [`game/`](../game)**
 - Hull cells, breachable walls, hull-safe weapon ratings, breach charges/cutters.
 - Explosive decompression (pull/knockdown/spacing), pressure, auto-bulkheads, sealers, suits.
 - **Playable:** win a room you couldn't take by venting it — and learn to fear doing it.
+  *(Delivered: exterior hull walls, a hull-charge action gated on breaching weapons, per-tile
+  pressure that diffuses out a breach — closed doors contain it, open doors spread it, sealed rooms
+  trap vacuum — with distance-falloff pull/decompression damage, asphyxiation, and EVA-suit immunity.
+  Deployable door-sealers/auto-bulkheads land with the M5 defense stockpile.)*
 
-### M5 — Mission types & objectives  · L
+### M5 — Mission types & objectives  · L  ← *next*
 - Assault (reach bridge, channel the helm), Defense (prep phase + stockpile placement + kill zones +
   banked-sensor bonus + attack waves), Rescue, Sabotage. Win/lose/extract flow.
 - **Playable:** full missions start-to-extraction, both assault and defense.
