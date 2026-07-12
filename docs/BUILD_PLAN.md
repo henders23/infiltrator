@@ -106,15 +106,18 @@ adjust to your available time. **M0–M1 is what the `slice/` prototype foreshad
 - One simple enemy that shoots back. Auto-pause-on-contact.
 - **Playable:** a real, lethal firefight you win or lose by positioning.
 
-### M3 — Orders depth & entries  · L  ← *next*
+### M3 — Orders depth & entries  · L  ✅ **done — see [`game/`](../game)**
 - Action waypoints: **breach door**, frag/flash-through, stack-up, **overwatch** (facing cones),
   use item, drag downed ally. Quiet vs loud entry; stances.
 - **Standing orders** a unit holds until re-tasked (overwatch arc, guard point, hold fire/weapons
   free, follow) + a command-bar "needs attention" list surfacing units worth re-planning. This is what
   makes individual planning scale to a 12-soldier boarding action without micromanagement.
 - **Playable:** the two-door synchronized breach — the signature DK1 moment.
+  *(Delivered: closed doors block move + sight; quiet auto-open vs loud breach that stuns the room;
+  flash/frag grenades; overwatch arcs with reaction fire; hold-fire; noise that wakes defenders; a
+  waypoint order-mode palette and a needs-attention selector. Drag-downed-ally lands with M7's medic.)*
 
-### M4 — Hull & venting  · L
+### M4 — Hull & venting  · L  ← *next*
 - Hull cells, breachable walls, hull-safe weapon ratings, breach charges/cutters.
 - Explosive decompression (pull/knockdown/spacing), pressure, auto-bulkheads, sealers, suits.
 - **Playable:** win a room you couldn't take by venting it — and learn to fear doing it.

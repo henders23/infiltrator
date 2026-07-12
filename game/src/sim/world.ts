@@ -2,25 +2,25 @@
 // rendering, no DOM, no wall-clock, no Math.random. Everything the player sees is
 // derived from this state; everything they do becomes an Order consumed here.
 //
-// M2 adds combat: units acquire targets in LOS + range and trade fire, cover and
-// suppression shape the odds, and casualties bleed out. All rolls use the seeded RNG.
+// M2 added combat. M3 adds the Door Kickers layer: doors that seal rooms (block move
+// + sight) until opened quietly or breached loud, flash/frag grenades, overwatch arcs,
+// stun, and noise that wakes defenders — so entries become the puzzle.
 
 import { coverMitigation } from './cover';
 import { damageAfterArmor, hitChance } from './combat';
-import { Grid } from './grid';
+import { DOOR, Grid } from './grid';
 import { hasLineOfSight, tileDist } from './los';
-import { isOrderComplete } from './orders';
+import { currentStep, GrenadeType, holdOrder, isPlanComplete, Step } from './orders';
 import { makeRng, Rng } from './rng';
-import { isActive, Unit } from './unit';
+import { isActive, isStunned, Unit } from './unit';
 import { weaponOf } from '../content/weapons';
 
 export interface WorldEvent {
   time: number;
-  kind: 'path-complete' | 'contact' | 'engage' | 'hit' | 'down' | 'kill' | 'info';
+  kind: 'path-complete' | 'contact' | 'engage' | 'hit' | 'down' | 'kill' | 'breach' | 'grenade' | 'info';
   text: string;
 }
 
-/** A resolved shot, kept briefly so the renderer can draw a tracer. */
 export interface Shot {
   time: number;
   from: { x: number; y: number };
@@ -29,14 +29,34 @@ export interface Shot {
   faction: Unit['faction'];
 }
 
+/** A grenade/breach detonation kept briefly for the renderer. */
+export interface Blast {
+  time: number;
+  pos: { x: number; y: number };
+  radius: number;
+  kind: GrenadeType | 'breach';
+}
+
 export const REVEAL_RADIUS = 6;
 const ARRIVE_EPS = 0.02;
-const SUPPRESS_SECONDS = 1.4; // how long a shot pins/degrades the target
-const STRESS_DECAY = 10; // stress points shed per second when not under fire
-const BLEEDOUT_SECONDS = 22; // a downed friendly's clock (M7 adds stabilize/drag)
-const AI_REACTION = 0.5; // hostile spot → engage delay
+const SUPPRESS_SECONDS = 1.4;
+const STRESS_DECAY = 10;
+const BLEEDOUT_SECONDS = 22;
+const AI_REACTION = 0.5;
 const SHOT_TTL = 0.12;
-const ENGAGE_HYSTERESIS = 2.5; // hostile keeps looking this long after losing LOS
+const BLAST_TTL = 0.4;
+const ENGAGE_HYSTERESIS = 2.5;
+
+const STUN_BREACH = 2.0;
+const STUN_FLASH = 3.0;
+const BREACH_STUN_RADIUS = 3;
+const FLASH_RADIUS = 3.5;
+const FRAG_RADIUS = 2.6;
+const FRAG_DAMAGE = 60;
+const FRAG_PEN = 20;
+const NOISE_RADIUS = 9;
+const GUNFIRE_NOISE = 6;
+const OVERWATCH_COS = 0.5; // ~120° cone
 
 export class World {
   readonly grid: Grid;
@@ -46,6 +66,9 @@ export class World {
   readonly seen = new Set<number>();
   readonly events: WorldEvent[] = [];
   readonly shots: Shot[] = [];
+  readonly blasts: Blast[] = [];
+  /** Tile indices of doors currently open (all doors start closed). */
+  readonly openDoors = new Set<number>();
 
   constructor(grid: Grid, units: Unit[], seed = 1) {
     this.grid = grid;
@@ -58,6 +81,13 @@ export class World {
     return this.units.find((u) => u.id === id);
   }
 
+  // ── door / sight helpers ────────────────────────────────────────────────────
+  isDoorClosed(x: number, y: number): boolean {
+    return this.grid.get(x, y) === DOOR && !this.openDoors.has(this.grid.idx(x, y));
+  }
+  /** Blocks line of sight: walls and closed doors. */
+  opaqueAt = (x: number, y: number): boolean => this.grid.isWall(x, y) || this.isDoorClosed(x, y);
+
   step(dt: number): void {
     this.time += dt;
     for (const u of this.units) {
@@ -66,18 +96,57 @@ export class World {
     this.updateAI(dt);
     this.runCombat(dt);
     this.decayAndBleed(dt);
-    this.pruneShots();
+    this.prune();
     this.revealFog();
   }
 
-  // ── movement ────────────────────────────────────────────────────────────────
+  // ── plan execution (step machine) ───────────────────────────────────────────
   private advance(u: Unit, dt: number): void {
-    if (u.order.kind !== 'move') return;
-    // suppressed units are pinned — they keep their order but can't advance
-    if (u.suppressedUntil > this.time) return;
+    if (isStunned(u, this.time)) return;
+    const s = currentStep(u.order);
+    switch (s.kind) {
+      case 'move':
+        // suppressed units are pinned — hold the order, can't advance
+        if (u.suppressedUntil <= this.time) this.runMove(u, s, dt);
+        break;
+      case 'breach':
+        this.faceToward(u, s.door.x + 0.5, s.door.y + 0.5);
+        s.timer -= dt;
+        if (s.timer <= 0) {
+          this.forceDoor(s.door, u);
+          u.order.step++;
+        }
+        break;
+      case 'grenade':
+        this.faceToward(u, s.target.x + 0.5, s.target.y + 0.5);
+        s.thrown = true;
+        s.fuse -= dt;
+        if (s.fuse <= 0) {
+          this.detonate(s.target, s.gtype, u);
+          u.order.step++;
+        }
+        break;
+      case 'overwatch':
+        u.facing.x = s.dir.x;
+        u.facing.y = s.dir.y;
+        break;
+      case 'hold':
+        break;
+    }
+    // fell off the end of the plan → stand down to a hold posture (once)
+    if (u.order.step >= u.order.steps.length) {
+      if (u.attention !== 'path-complete') {
+        u.attention = 'path-complete';
+        this.events.push({ time: this.time, kind: 'path-complete', text: `${u.name} set.` });
+      }
+      u.order = holdOrder();
+    }
+  }
+
+  private runMove(u: Unit, s: Extract<Step, { kind: 'move' }>, dt: number): void {
     let budget = u.speed * dt;
-    while (budget > 0 && u.order.index < u.order.path.length) {
-      const node = u.order.path[u.order.index];
+    while (budget > 0 && s.index < s.path.length) {
+      const node = s.path[s.index];
       const tx = node.x + 0.5;
       const ty = node.y + 0.5;
       const dx = tx - u.pos.x;
@@ -86,7 +155,8 @@ export class World {
       if (d <= ARRIVE_EPS) {
         u.pos.x = tx;
         u.pos.y = ty;
-        u.order.index++;
+        this.onEnterTile(node.x, node.y);
+        s.index++;
         continue;
       }
       u.facing.x = dx / d;
@@ -98,24 +168,74 @@ export class World {
       if (d - stepDist <= ARRIVE_EPS) {
         u.pos.x = tx;
         u.pos.y = ty;
-        u.order.index++;
+        this.onEnterTile(node.x, node.y);
+        s.index++;
       }
     }
-    if (isOrderComplete(u.order)) {
-      u.attention = 'path-complete';
-      this.events.push({
-        time: this.time,
-        kind: 'path-complete',
-        text: `${u.name} reached the objective.`,
-      });
-      u.order = { kind: 'hold' };
+    if (s.index >= s.path.length) u.order.step++;
+  }
+
+  /** Walking onto a closed door opens it quietly — the default, silent entry. */
+  private onEnterTile(x: number, y: number): void {
+    if (this.isDoorClosed(x, y)) {
+      this.openDoors.add(this.grid.idx(x, y));
+      this.events.push({ time: this.time, kind: 'info', text: 'Door opened.' });
+    }
+  }
+
+  private forceDoor(door: { x: number; y: number }, by: Unit): void {
+    this.openDoors.add(this.grid.idx(door.x, door.y));
+    this.blasts.push({ time: this.time, pos: { x: door.x + 0.5, y: door.y + 0.5 }, radius: BREACH_STUN_RADIUS, kind: 'breach' });
+    this.events.push({ time: this.time, kind: 'breach', text: `${by.name} breaches the door.` });
+    // stun the defenders beyond — the payoff for going loud
+    for (const o of this.units) {
+      if (!isActive(o) || o.faction === by.faction) continue;
+      if (tileDist(o.pos.x, o.pos.y, door.x + 0.5, door.y + 0.5) <= BREACH_STUN_RADIUS) {
+        o.stunnedUntil = Math.max(o.stunnedUntil, this.time + STUN_BREACH);
+        o.stress = Math.min(100, o.stress + 30);
+      }
+    }
+    this.makeNoise(door.x + 0.5, door.y + 0.5);
+  }
+
+  private detonate(target: { x: number; y: number }, gtype: GrenadeType, by: Unit): void {
+    const radius = gtype === 'flash' ? FLASH_RADIUS : FRAG_RADIUS;
+    this.blasts.push({ time: this.time, pos: { x: target.x + 0.5, y: target.y + 0.5 }, radius, kind: gtype });
+    this.events.push({
+      time: this.time,
+      kind: 'grenade',
+      text: gtype === 'flash' ? `${by.name}: flashbang out.` : `${by.name}: frag out.`,
+    });
+    for (const o of this.units) {
+      if (!isActive(o)) continue; // grenades don't discriminate — mind your own team
+      if (tileDist(o.pos.x, o.pos.y, target.x + 0.5, target.y + 0.5) > radius) continue;
+      if (gtype === 'flash') {
+        o.stunnedUntil = Math.max(o.stunnedUntil, this.time + STUN_FLASH);
+        o.stress = Math.min(100, o.stress + 40);
+      } else {
+        const dmg = Math.max(5, FRAG_DAMAGE - Math.max(0, o.armor - FRAG_PEN));
+        o.hp -= dmg;
+        if (o.hp <= 0) this.downUnit(o, by);
+      }
+    }
+    this.makeNoise(target.x + 0.5, target.y + 0.5);
+  }
+
+  /** Loud events (breach, grenade, gunfire) wake idle defenders within earshot. */
+  private makeNoise(x: number, y: number, radius = NOISE_RADIUS): void {
+    for (const h of this.units) {
+      if (!isActive(h) || h.faction !== 'hostile') continue;
+      if (h.combat === 'idle' && tileDist(h.pos.x, h.pos.y, x, y) <= radius) {
+        h.combat = 'alert';
+        h.combatTimer = AI_REACTION;
+      }
     }
   }
 
   // ── hostile AI ──────────────────────────────────────────────────────────────
   private updateAI(dt: number): void {
     for (const h of this.units) {
-      if (!isActive(h) || h.faction !== 'hostile') continue;
+      if (!isActive(h) || h.faction !== 'hostile' || isStunned(h, this.time)) continue;
       const target = this.nearestVisibleEnemy(h);
       switch (h.combat) {
         case 'idle':
@@ -126,9 +246,7 @@ export class World {
           break;
         case 'alert':
           h.combatTimer -= dt;
-          if (!target) {
-            h.combat = 'idle';
-          } else if (h.combatTimer <= 0) {
+          if (target && h.combatTimer <= 0) {
             h.combat = 'engage';
             h.combatTimer = ENGAGE_HYSTERESIS;
             this.events.push({ time: this.time, kind: 'engage', text: `${h.name} opens fire.` });
@@ -148,11 +266,16 @@ export class World {
   // ── combat ──────────────────────────────────────────────────────────────────
   private runCombat(dt: number): void {
     for (const u of this.units) {
-      if (!isActive(u)) continue;
+      if (!isActive(u) || isStunned(u, this.time)) continue;
       u.fireCooldown = Math.max(0, u.fireCooldown - dt);
-      // hostiles only shoot once engaged; friendlies are always weapons-free
-      if (u.faction === 'hostile' && u.combat !== 'engage') continue;
-      const target = this.nearestVisibleEnemy(u);
+
+      const step = currentStep(u.order);
+      const onOverwatch = step.kind === 'overwatch';
+      const mayFire = u.faction === 'hostile' ? u.combat === 'engage' : u.weaponsFree || onOverwatch;
+      if (!mayFire) continue;
+
+      const arc = onOverwatch ? (step as Extract<Step, { kind: 'overwatch' }>).dir : null;
+      const target = this.nearestVisibleEnemy(u, arc);
       u.targetId = target ? target.id : null;
       if (target && u.fireCooldown <= 0) {
         this.resolveShot(u, target);
@@ -171,13 +294,11 @@ export class World {
       Math.floor(shooter.pos.x),
       Math.floor(shooter.pos.y),
     );
-    shooter.facing.x = (target.pos.x - shooter.pos.x) / (dist || 1);
-    shooter.facing.y = (target.pos.y - shooter.pos.y) / (dist || 1);
+    this.faceToward(shooter, target.pos.x, target.pos.y);
 
     const chance = hitChance(w, dist, cover, shooter.suppressedUntil > this.time);
     const hit = this.rng() < chance;
 
-    // being shot at suppresses and stresses the target whether or not it connects
     target.stress = Math.min(100, target.stress + w.suppression);
     target.suppressedUntil = Math.max(target.suppressedUntil, this.time + SUPPRESS_SECONDS);
 
@@ -188,6 +309,8 @@ export class World {
       hit,
       faction: shooter.faction,
     });
+    // gunfire is loud — nearby idle defenders hear it
+    if (shooter.faction === 'friendly') this.makeNoise(shooter.pos.x, shooter.pos.y, GUNFIRE_NOISE);
 
     if (hit) {
       const dmg = damageAfterArmor(w, target.armor, this.rng());
@@ -206,18 +329,15 @@ export class World {
     } else {
       u.downed = true;
       u.bleedout = BLEEDOUT_SECONDS;
-      u.order = { kind: 'hold' };
+      u.order = holdOrder();
       u.attention = 'down';
       this.events.push({ time: this.time, kind: 'down', text: `${u.name} is DOWN — bleeding out.` });
     }
   }
 
-  // ── upkeep ──────────────────────────────────────────────────────────────────
   private decayAndBleed(dt: number): void {
     for (const u of this.units) {
-      if (u.suppressedUntil <= this.time) {
-        u.stress = Math.max(0, u.stress - STRESS_DECAY * dt);
-      }
+      if (u.suppressedUntil <= this.time) u.stress = Math.max(0, u.stress - STRESS_DECAY * dt);
       if (u.downed && u.alive) {
         u.bleedout -= dt;
         if (u.bleedout <= 0) {
@@ -229,24 +349,33 @@ export class World {
     }
   }
 
-  private pruneShots(): void {
-    const cutoff = this.time - SHOT_TTL;
+  private prune(): void {
+    const shotCut = this.time - SHOT_TTL;
     let i = 0;
-    while (i < this.shots.length && this.shots[i].time < cutoff) i++;
+    while (i < this.shots.length && this.shots[i].time < shotCut) i++;
     if (i > 0) this.shots.splice(0, i);
+    const blastCut = this.time - BLAST_TTL;
+    let j = 0;
+    while (j < this.blasts.length && this.blasts[j].time < blastCut) j++;
+    if (j > 0) this.blasts.splice(0, j);
   }
 
   // ── perception ──────────────────────────────────────────────────────────────
-  /** Nearest enemy-faction unit this unit can shoot: active, in range, with LOS. */
-  nearestVisibleEnemy(u: Unit): Unit | undefined {
+  /** Nearest enemy this unit can shoot: active, in range, in LOS, and (if given) in arc. */
+  nearestVisibleEnemy(u: Unit, arc?: { x: number; y: number } | null): Unit | undefined {
     const w = weaponOf(u.weapon);
     let best: Unit | undefined;
     let bestD = Infinity;
     for (const o of this.units) {
       if (!isActive(o) || o.faction === u.faction) continue;
-      const d = tileDist(u.pos.x, u.pos.y, o.pos.x, o.pos.y);
-      if (d > w.range) continue;
-      if (d >= bestD) continue;
+      const dx = o.pos.x - u.pos.x;
+      const dy = o.pos.y - u.pos.y;
+      const d = Math.hypot(dx, dy);
+      if (d > w.range || d >= bestD) continue;
+      if (arc) {
+        const inv = 1 / (d || 1);
+        if (arc.x * dx * inv + arc.y * dy * inv < OVERWATCH_COS) continue;
+      }
       if (
         !hasLineOfSight(
           this.grid,
@@ -254,6 +383,7 @@ export class World {
           Math.floor(u.pos.y),
           Math.floor(o.pos.x),
           Math.floor(o.pos.y),
+          this.opaqueAt,
         )
       )
         continue;
@@ -261,6 +391,14 @@ export class World {
       bestD = d;
     }
     return best;
+  }
+
+  private faceToward(u: Unit, x: number, y: number): void {
+    const dx = x - u.pos.x;
+    const dy = y - u.pos.y;
+    const d = Math.hypot(dx, dy) || 1;
+    u.facing.x = dx / d;
+    u.facing.y = dy / d;
   }
 
   private revealFog(): void {
@@ -275,4 +413,8 @@ export class World {
       }
     }
   }
+}
+
+export function isPlanActive(u: Unit): boolean {
+  return !isPlanComplete(u.order);
 }

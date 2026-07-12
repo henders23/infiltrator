@@ -7,8 +7,17 @@
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import { DOOR, WALL } from '../sim/grid';
 import { findPath } from '../sim/pathfinding';
-import { moveOrder } from '../sim/orders';
-import { isActive, Unit } from '../sim/unit';
+import {
+  BREACH_TIME,
+  currentStep,
+  GrenadeType,
+  GRENADE_FUSE,
+  holdOrder,
+  isPlanComplete,
+  moveOrder,
+  Step,
+} from '../sim/orders';
+import { isActive, isStunned, Unit } from '../sim/unit';
 import { World, REVEAL_RADIUS } from '../sim/world';
 import { Mission } from '../content/maps';
 import { weaponOf } from '../content/weapons';
@@ -17,6 +26,9 @@ import { COLORS, FONT_MONO } from '../ui/theme';
 const TILE_PX = 28;
 const FIXED_DT = 1 / 60; // deterministic sim step
 const EMIT_INTERVAL = 0.1; // throttle UI snapshots to ~10 Hz
+
+/** What the next left-click on the deck means for the selected soldier. */
+export type OrderMode = 'move' | 'breach' | 'flash' | 'frag' | 'overwatch';
 
 export interface UnitSnapshot {
   id: number;
@@ -30,6 +42,8 @@ export interface UnitSnapshot {
   needsAttention: boolean;
   visible: boolean;
   stress: number;
+  stunned: boolean;
+  weaponsFree: boolean;
   weapon: string;
   hullSafety: string;
   armor: number;
@@ -40,6 +54,8 @@ export interface Snapshot {
   time: number;
   missionName: string;
   selectedId: number | null;
+  orderMode: OrderMode;
+  attentionCount: number;
   units: UnitSnapshot[];
   log: string[];
 }
@@ -58,14 +74,16 @@ export class Engine {
 
   private readonly stage = new Container(); // pannable/zoomable world
   private readonly deckG = new Graphics();
+  private readonly doorsG = new Graphics(); // door state (redrawn each frame)
   private readonly fogG = new Graphics();
   private readonly planG = new Graphics();
   private readonly unitLayer = new Container();
-  private readonly fxG = new Graphics(); // tracers / muzzle flashes (above units)
+  private readonly fxG = new Graphics(); // tracers / muzzle / blasts (above units)
   private readonly views = new Map<number, UnitView>();
 
   paused = true;
   selectedId: number | null = null;
+  orderMode: OrderMode = 'move';
   private hover: { x: number; y: number } | null = null;
 
   private acc = 0;
@@ -98,7 +116,7 @@ export class Engine {
     });
     host.appendChild(this.app.canvas);
 
-    this.stage.addChild(this.deckG, this.fogG, this.planG, this.unitLayer, this.fxG);
+    this.stage.addChild(this.deckG, this.doorsG, this.fogG, this.planG, this.unitLayer, this.fxG);
     this.app.stage.addChild(this.stage);
 
     this.drawDeck();
@@ -230,13 +248,32 @@ export class Engine {
     }
     if (e.button === 0) {
       const tile = this.screenToTile(p.x, p.y);
-      const hit = this.friendlyAt(tile.x, tile.y) ?? this.hostileAtVisible(tile.x, tile.y);
-      if (hit && hit.faction === 'friendly') {
-        this.selectedId = hit.id;
+      // clicking a friendly always selects it (in any mode)
+      const friendly = this.friendlyAt(tile.x, tile.y);
+      if (friendly && this.orderMode === 'move') {
+        this.selectedId = friendly.id;
         this.emit();
         return;
       }
-      if (this.selectedId != null) this.issueMove(tile.x, tile.y, e.shiftKey);
+      if (this.selectedId == null) return;
+      switch (this.orderMode) {
+        case 'move':
+          this.issueMove(tile.x, tile.y, e.shiftKey);
+          break;
+        case 'breach':
+          this.issueBreach(tile.x, tile.y);
+          this.setOrderMode('move');
+          break;
+        case 'flash':
+        case 'frag':
+          this.issueGrenade(tile.x, tile.y, this.orderMode === 'flash' ? 'flash' : 'frag');
+          this.setOrderMode('move');
+          break;
+        case 'overwatch':
+          this.issueOverwatch(tile.x, tile.y);
+          this.setOrderMode('move');
+          break;
+      }
     }
   }
 
@@ -294,37 +331,144 @@ export class Engine {
       this.emit();
     }
   }
+  setOrderMode(mode: OrderMode): void {
+    this.orderMode = mode;
+    this.emit();
+  }
+  toggleHoldFire(): void {
+    const u = this.selected();
+    if (u) {
+      u.weaponsFree = !u.weaponsFree;
+      this.log.push(`${u.name}: ${u.weaponsFree ? 'weapons free' : 'hold fire'}.`);
+      this.emit();
+    }
+  }
+  /** Cycle selection to the next soldier flagged for attention (contact/down/idle). */
+  selectNextAttention(): void {
+    const flagged = this.world.units.filter((u) => u.faction === 'friendly' && u.alive && u.attention != null);
+    if (!flagged.length) return;
+    const cur = flagged.findIndex((u) => u.id === this.selectedId);
+    this.selectedId = flagged[(cur + 1) % flagged.length].id;
+    this.emit();
+  }
   /** Select a unit and give it a move order in one call (used by UI shortcuts/tests). */
   orderMoveTo(id: number, tx: number, ty: number, append = false): void {
     if (this.world.unit(id)?.faction !== 'friendly') return;
     this.selectedId = id;
     this.issueMove(tx, ty, append);
   }
+  orderBreach(id: number, dx: number, dy: number): void {
+    if (this.world.unit(id)?.faction !== 'friendly') return;
+    this.selectedId = id;
+    this.issueBreach(dx, dy);
+  }
+  orderGrenade(id: number, tx: number, ty: number, gtype: GrenadeType): void {
+    if (this.world.unit(id)?.faction !== 'friendly') return;
+    this.selectedId = id;
+    this.issueGrenade(tx, ty, gtype);
+  }
+  orderOverwatch(id: number, tx: number, ty: number): void {
+    if (this.world.unit(id)?.faction !== 'friendly') return;
+    this.selectedId = id;
+    this.issueOverwatch(tx, ty);
+  }
   clearSelectedOrder(): void {
     const u = this.selected();
     if (u) {
-      u.order = { kind: 'hold' };
+      u.order = holdOrder();
       u.attention = null;
+      this.setOrderMode('move');
       this.emit();
     }
+  }
+
+  // ── plan building (append action waypoints to the selected soldier) ──────────
+  /** Tile the soldier will occupy after its current plan runs (for chaining steps). */
+  private planEndTile(u: Unit): { x: number; y: number } {
+    let tile = { x: Math.floor(u.pos.x), y: Math.floor(u.pos.y) };
+    for (const s of u.order.steps) {
+      if (s.kind === 'move' && s.path.length) {
+        const n = s.path[s.path.length - 1];
+        tile = { x: n.x, y: n.y };
+      }
+    }
+    return tile;
+  }
+  /** True when the soldier is just standing (no pending plan) — start fresh on next step. */
+  private isStanding(u: Unit): boolean {
+    return u.order.step === 0 && u.order.steps.length === 1 && isPlanComplete(u.order);
+  }
+  private appendStep(u: Unit, step: Step): void {
+    if (this.isStanding(u)) u.order = { steps: [step], step: 0 };
+    else u.order.steps.push(step);
+    u.attention = null;
   }
 
   private issueMove(tx: number, ty: number, append: boolean): void {
     const u = this.selected();
     if (!u || !this.mission.grid.isWalkable(tx, ty)) return;
-    if (append && u.order.kind === 'move' && u.order.path.length > 0) {
-      const from = u.order.path[u.order.path.length - 1];
-      const seg = findPath(this.mission.grid, from.x, from.y, tx, ty);
-      if (seg && seg.length) u.order.path = u.order.path.concat(seg);
-    } else {
+    if (!append) {
       const from = { x: Math.floor(u.pos.x), y: Math.floor(u.pos.y) };
       const path = findPath(this.mission.grid, from.x, from.y, tx, ty);
       if (path && path.length) {
         u.order = moveOrder(path);
         u.attention = null;
       }
+    } else {
+      const from = this.planEndTile(u);
+      const seg = findPath(this.mission.grid, from.x, from.y, tx, ty);
+      if (seg && seg.length) {
+        const last = u.order.steps[u.order.steps.length - 1];
+        if (!this.isStanding(u) && last && last.kind === 'move') last.path = last.path.concat(seg);
+        else this.appendStep(u, { kind: 'move', path: seg, index: 0 });
+      }
     }
     this.emit();
+  }
+
+  private issueBreach(dx: number, dy: number): void {
+    const u = this.selected();
+    if (!u || this.mission.grid.get(dx, dy) !== DOOR) return;
+    const from = this.planEndTile(u);
+    const approach = this.approachTile(dx, dy, from);
+    if (approach && (approach.x !== from.x || approach.y !== from.y)) {
+      const seg = findPath(this.mission.grid, from.x, from.y, approach.x, approach.y);
+      if (seg && seg.length) this.appendStep(u, { kind: 'move', path: seg, index: 0 });
+    }
+    this.appendStep(u, { kind: 'breach', door: { x: dx, y: dy }, timer: BREACH_TIME });
+    this.emit();
+  }
+
+  private issueGrenade(tx: number, ty: number, gtype: GrenadeType): void {
+    const u = this.selected();
+    if (!u || !this.mission.grid.inBounds(tx, ty) || this.mission.grid.isWall(tx, ty)) return;
+    this.appendStep(u, { kind: 'grenade', target: { x: tx, y: ty }, gtype, fuse: GRENADE_FUSE, thrown: false });
+    this.emit();
+  }
+
+  private issueOverwatch(tx: number, ty: number): void {
+    const u = this.selected();
+    if (!u) return;
+    const from = this.planEndTile(u);
+    let dx = tx + 0.5 - (from.x + 0.5);
+    let dy = ty + 0.5 - (from.y + 0.5);
+    const d = Math.hypot(dx, dy) || 1;
+    dx /= d;
+    dy /= d;
+    this.appendStep(u, { kind: 'overwatch', dir: { x: dx, y: dy } });
+    this.emit();
+  }
+
+  /** A walkable, non-door tile beside the door, nearest to `from` (the stack point). */
+  private approachTile(dx: number, dy: number, from: { x: number; y: number }): { x: number; y: number } | null {
+    const cands = [
+      { x: dx + 1, y: dy },
+      { x: dx - 1, y: dy },
+      { x: dx, y: dy + 1 },
+      { x: dx, y: dy - 1 },
+    ].filter((t) => this.mission.grid.isWalkable(t.x, t.y) && this.mission.grid.get(t.x, t.y) !== DOOR);
+    cands.sort((a, b) => Math.hypot(a.x - from.x, a.y - from.y) - Math.hypot(b.x - from.x, b.y - from.y));
+    return cands[0] ?? null;
   }
 
   // ── helpers ─────────────────────────────────────────────────────────────────
@@ -334,16 +478,6 @@ export class Engine {
   private friendlyAt(x: number, y: number): Unit | undefined {
     return this.world.units.find(
       (u) => u.alive && u.faction === 'friendly' && Math.floor(u.pos.x) === x && Math.floor(u.pos.y) === y,
-    );
-  }
-  private hostileAtVisible(x: number, y: number): Unit | undefined {
-    return this.world.units.find(
-      (u) =>
-        u.alive &&
-        u.faction === 'hostile' &&
-        this.isVisible(u) &&
-        Math.floor(u.pos.x) === x &&
-        Math.floor(u.pos.y) === y,
     );
   }
   /** Currently within reveal radius of a living friendly (fog "visible now"). */
@@ -369,11 +503,30 @@ export class Engine {
           g.rect(px, py, TILE_PX, TILE_PX).fill(COLORS.wall);
           g.rect(px + 0.5, py + 0.5, TILE_PX - 1, TILE_PX - 1).stroke({ width: 1, color: COLORS.wallEdge });
         } else {
+          // floor (and door frame — the door leaf itself is drawn dynamically)
           g.rect(px, py, TILE_PX, TILE_PX).fill(COLORS.floor);
           g.rect(px + 0.5, py + 0.5, TILE_PX - 1, TILE_PX - 1).stroke({ width: 1, color: COLORS.line });
-          if (k === DOOR) {
-            g.rect(px + 4, py + 4, TILE_PX - 8, TILE_PX - 8).stroke({ width: 2, color: COLORS.door });
-          }
+        }
+      }
+    }
+  }
+
+  /** Doors change state during play, so they render per-frame: closed = solid leaf. */
+  private drawDoors(): void {
+    const g = this.doorsG;
+    g.clear();
+    const grid = this.mission.grid;
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        if (grid.get(x, y) !== DOOR) continue;
+        const px = x * TILE_PX;
+        const py = y * TILE_PX;
+        if (this.world.isDoorClosed(x, y)) {
+          g.rect(px + 3, py + 3, TILE_PX - 6, TILE_PX - 6).fill({ color: COLORS.door, alpha: 0.85 });
+          g.rect(px + 3, py + 3, TILE_PX - 6, TILE_PX - 6).stroke({ width: 1, color: COLORS.navy });
+        } else {
+          // open: just the frame, recessed
+          g.rect(px + 4, py + 4, TILE_PX - 8, TILE_PX - 8).stroke({ width: 1.5, color: COLORS.door, alpha: 0.5 });
         }
       }
     }
@@ -397,6 +550,7 @@ export class Engine {
 
   // ── per-frame render ────────────────────────────────────────────────────────
   private drawFrame(): void {
+    this.drawDoors();
     this.drawFog();
     this.drawPlan();
     this.drawUnits();
@@ -416,6 +570,16 @@ export class Engine {
         .stroke({ width: s.hit ? 2 : 1, color, alpha: s.hit ? 0.85 : 0.35 });
       g.circle(s.from.x * TILE_PX, s.from.y * TILE_PX, 3).fill({ color, alpha: 0.9 });
       if (s.hit) g.circle(s.to.x * TILE_PX, s.to.y * TILE_PX, 4).stroke({ width: 1.5, color: COLORS.orange });
+    }
+    // grenade / breach detonations — an expanding ring that fades with age
+    for (const bl of this.world.blasts) {
+      const age = (this.world.time - bl.time) / 0.4;
+      if (age > 1) continue;
+      const color = bl.kind === 'frag' ? COLORS.red : bl.kind === 'flash' ? 0xffffff : COLORS.orange;
+      g.circle(bl.pos.x * TILE_PX, bl.pos.y * TILE_PX, bl.radius * TILE_PX * (0.4 + 0.6 * age))
+        .stroke({ width: 3, color, alpha: 1 - age });
+      if (bl.kind === 'flash')
+        g.circle(bl.pos.x * TILE_PX, bl.pos.y * TILE_PX, bl.radius * TILE_PX * 0.5).fill({ color: 0xffffff, alpha: 0.25 * (1 - age) });
     }
   }
 
@@ -448,30 +612,78 @@ export class Engine {
     const g = this.planG;
     g.clear();
     for (const u of this.world.units) {
-      if (u.faction !== 'friendly' || u.order.kind !== 'move') continue;
-      const sel = u.id === this.selectedId;
-      const remaining = u.order.path.slice(u.order.index);
-      if (!remaining.length) continue;
-      const color = sel ? COLORS.cyan : COLORS.cyanDim;
-      g.moveTo(u.pos.x * TILE_PX, u.pos.y * TILE_PX);
-      for (const n of remaining) g.lineTo((n.x + 0.5) * TILE_PX, (n.y + 0.5) * TILE_PX);
-      g.stroke({ width: sel ? 2 : 1.5, color, alpha: sel ? 0.95 : 0.5 });
-      const d = remaining[remaining.length - 1];
-      g.rect((d.x + 0.5) * TILE_PX - 6, (d.y + 0.5) * TILE_PX - 6, 12, 12).stroke({ width: 1.5, color });
+      if (u.faction !== 'friendly' || !u.alive || u.downed) continue;
+      if (isPlanComplete(u.order) && currentStep(u.order).kind !== 'overwatch') continue;
+      this.drawUnitPlan(g, u, u.id === this.selectedId);
     }
-    // live A* preview from the selected unit to the hovered tile while planning
-    if (this.paused && this.hover) {
+    // live A* preview from the selected unit to the hovered tile while planning (move mode)
+    if (this.paused && this.hover && this.orderMode === 'move') {
       const u = this.selected();
       if (u && this.mission.grid.isWalkable(this.hover.x, this.hover.y)) {
-        const from = { x: Math.floor(u.pos.x), y: Math.floor(u.pos.y) };
+        const from = this.planEndTile(u);
         const preview = findPath(this.mission.grid, from.x, from.y, this.hover.x, this.hover.y);
         if (preview && preview.length) {
-          g.moveTo(u.pos.x * TILE_PX, u.pos.y * TILE_PX);
+          g.moveTo((from.x + 0.5) * TILE_PX, (from.y + 0.5) * TILE_PX);
           for (const n of preview) g.lineTo((n.x + 0.5) * TILE_PX, (n.y + 0.5) * TILE_PX);
           g.stroke({ width: 1, color: COLORS.cyan, alpha: 0.3 });
         }
       }
     }
+  }
+
+  /** Walk a soldier's plan steps and draw legs, breach/grenade markers, overwatch cones. */
+  private drawUnitPlan(g: Graphics, u: Unit, sel: boolean): void {
+    const color = sel ? COLORS.cyan : COLORS.cyanDim;
+    const alpha = sel ? 0.95 : 0.45;
+    let cx = u.pos.x;
+    let cy = u.pos.y;
+    for (let i = u.order.step; i < u.order.steps.length; i++) {
+      const s = u.order.steps[i];
+      if (s.kind === 'move') {
+        const nodes = i === u.order.step ? s.path.slice(s.index) : s.path;
+        if (!nodes.length) continue;
+        g.moveTo(cx * TILE_PX, cy * TILE_PX);
+        for (const n of nodes) g.lineTo((n.x + 0.5) * TILE_PX, (n.y + 0.5) * TILE_PX);
+        g.stroke({ width: sel ? 2 : 1.5, color, alpha });
+        const last = nodes[nodes.length - 1];
+        cx = last.x + 0.5;
+        cy = last.y + 0.5;
+      } else if (s.kind === 'breach') {
+        const bx = (s.door.x + 0.5) * TILE_PX;
+        const by = (s.door.y + 0.5) * TILE_PX;
+        const r = TILE_PX * 0.34;
+        g.moveTo(bx - r, by - r).lineTo(bx + r, by + r).moveTo(bx + r, by - r).lineTo(bx - r, by + r)
+          .stroke({ width: 2.5, color: COLORS.orange, alpha });
+        g.circle(bx, by, r).stroke({ width: 1.5, color: COLORS.orange, alpha });
+      } else if (s.kind === 'grenade') {
+        const tx = (s.target.x + 0.5) * TILE_PX;
+        const ty = (s.target.y + 0.5) * TILE_PX;
+        const gc = s.gtype === 'frag' ? COLORS.red : 0xffffff;
+        g.moveTo(cx * TILE_PX, cy * TILE_PX).lineTo(tx, ty).stroke({ width: 1, color: gc, alpha: alpha * 0.7 });
+        const rad = s.gtype === 'frag' ? 2.6 : 3.5;
+        g.circle(tx, ty, rad * TILE_PX).stroke({ width: 1, color: gc, alpha: alpha * 0.5 });
+        g.circle(tx, ty, 4).fill({ color: gc, alpha });
+      } else if (s.kind === 'overwatch') {
+        this.drawCone(g, cx, cy, s.dir, color, alpha);
+      }
+    }
+  }
+
+  private drawCone(g: Graphics, cx: number, cy: number, dir: { x: number; y: number }, color: number, alpha: number): void {
+    const ox = cx * TILE_PX;
+    const oy = cy * TILE_PX;
+    const range = 5 * TILE_PX;
+    const base = Math.atan2(dir.y, dir.x);
+    const half = Math.PI / 3; // ~60°, matches the sim's overwatch arc
+    g.moveTo(ox, oy)
+      .lineTo(ox + Math.cos(base - half) * range, oy + Math.sin(base - half) * range)
+      .arc(ox, oy, range, base - half, base + half)
+      .lineTo(ox, oy)
+      .fill({ color, alpha: alpha * 0.12 });
+    g.moveTo(ox, oy).lineTo(ox + Math.cos(base - half) * range, oy + Math.sin(base - half) * range)
+      .stroke({ width: 1, color, alpha: alpha * 0.5 });
+    g.moveTo(ox, oy).lineTo(ox + Math.cos(base + half) * range, oy + Math.sin(base + half) * range)
+      .stroke({ width: 1, color, alpha: alpha * 0.5 });
   }
 
   private drawUnits(): void {
@@ -507,6 +719,15 @@ export class Engine {
       // suppressed / pinned halo
       if (u.suppressedUntil > this.world.time)
         view.ring.circle(0, 0, TILE_PX * 0.4).stroke({ width: 3, color: COLORS.orange, alpha: 0.5 });
+      // stunned — a dashed white ring (out of the fight for a moment)
+      if (isStunned(u, this.world.time)) {
+        for (let a = 0; a < 8; a++) {
+          const t0 = (a / 8) * Math.PI * 2;
+          view.ring
+            .arc(0, 0, TILE_PX * 0.44, t0, t0 + 0.35)
+            .stroke({ width: 2.5, color: 0xffffff, alpha: 0.85 });
+        }
+      }
 
       view.body.circle(0, 0, TILE_PX * 0.3).fill(color);
       // facing tick
@@ -546,6 +767,8 @@ export class Engine {
       needsAttention: u.attention != null,
       visible: u.faction === 'friendly' || this.isVisible(u),
       stress: Math.round(u.stress),
+      stunned: isStunned(u, this.world.time),
+      weaponsFree: u.weaponsFree,
       weapon: weaponOf(u.weapon).name,
       hullSafety: weaponOf(u.weapon).hullSafety,
       armor: u.armor,
@@ -556,6 +779,8 @@ export class Engine {
       time: this.world.time,
       missionName: this.mission.name,
       selectedId: this.selectedId,
+      orderMode: this.orderMode,
+      attentionCount: this.world.units.filter((u) => u.faction === 'friendly' && u.alive && u.attention != null).length,
       units,
       log: this.log.slice(-8),
     });
@@ -565,10 +790,15 @@ export class Engine {
     if (!u.alive) return 'K.I.A.';
     if (u.downed) return 'DOWN — BLEEDING';
     if (u.faction === 'hostile') return this.isVisible(u) ? 'CONTACT' : 'UNKNOWN';
+    if (isStunned(u, this.world.time)) return 'STUNNED';
+    const step = currentStep(u.order);
+    if (step.kind === 'breach') return 'BREACHING';
+    if (step.kind === 'grenade') return step.gtype === 'flash' ? 'FLASH OUT' : 'FRAG OUT';
+    if (step.kind === 'overwatch') return u.weaponsFree ? 'OVERWATCH' : 'OW · HOLD';
     if (u.suppressedUntil > this.world.time) return 'PINNED';
     if (u.targetId != null && isActive(this.world.unit(u.targetId) ?? u)) return 'FIRING';
-    if (u.order.kind === 'move' && u.order.index < u.order.path.length)
-      return this.paused ? 'ORDERS SET' : 'MOVING';
+    if (step.kind === 'move' && step.index < step.path.length) return this.paused ? 'ORDERS SET' : 'MOVING';
+    if (!u.weaponsFree) return 'HOLD FIRE';
     if (u.attention === 'path-complete') return 'IN POSITION';
     return 'HOLDING';
   }

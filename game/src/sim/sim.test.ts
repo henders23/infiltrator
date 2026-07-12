@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { findPath } from './pathfinding';
 import { gridFromAscii, WALL } from './grid';
 import { makeRng } from './rng';
-import { moveOrder } from './orders';
+import { currentStep, moveOrder } from './orders';
 import { makeUnit } from './unit';
 import { World } from './world';
 
@@ -87,7 +87,7 @@ describe('world — plan-then-execute movement', () => {
     // paused semantics: stepping IS the execute — run enough fixed ticks to arrive
     for (let i = 0; i < 120; i++) world.step(1 / 60);
 
-    expect(u.order.kind).toBe('hold'); // completed order becomes a standing hold
+    expect(currentStep(u.order).kind).toBe('hold'); // completed plan becomes a standing hold
     expect(u.pos.x).toBeCloseTo(5.5, 3);
     expect(u.pos.y).toBeCloseTo(1.5, 3);
     expect(u.attention).toBe('path-complete');
@@ -101,7 +101,8 @@ describe('world — plan-then-execute movement', () => {
       const w = new World(grid, [u], 99);
       u.order = moveOrder(findPath(grid, 1, 1, 8, 4)!);
       for (let i = 0; i < 40; i++) w.step(1 / 60);
-      return { x: u.pos.x, y: u.pos.y, idx: u.order.kind === 'move' ? u.order.index : -1 };
+      const s = currentStep(u.order);
+      return { x: u.pos.x, y: u.pos.y, idx: s.kind === 'move' ? s.index : -1 };
     };
     expect(run()).toEqual(run());
   });

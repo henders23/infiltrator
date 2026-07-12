@@ -1,10 +1,17 @@
-// Grid line-of-sight. Walls block sight; floors and doors are transparent (door
-// open/close arrives in M3). Endpoints are excluded so a shooter standing against a
-// wall can still see out of its own tile.
+// Grid line-of-sight. Walls block sight; a closed door blocks it too (pass an
+// `isOpaque` predicate). Endpoints are excluded so a shooter standing against a wall
+// (or in a doorway) can still see out of its own tile.
 
 import { Grid } from './grid';
 
-export function hasLineOfSight(grid: Grid, x0: number, y0: number, x1: number, y1: number): boolean {
+export function hasLineOfSight(
+  grid: Grid,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  isOpaque: (x: number, y: number) => boolean = (x, y) => grid.isWall(x, y),
+): boolean {
   const dx = Math.abs(x1 - x0);
   const dy = Math.abs(y1 - y0);
   const sx = x0 < x1 ? 1 : -1;
@@ -25,7 +32,7 @@ export function hasLineOfSight(grid: Grid, x0: number, y0: number, x1: number, y
       y += sy;
     }
     if (x === x1 && y === y1) return true;
-    if (grid.isWall(x, y)) return false;
+    if (isOpaque(x, y)) return false;
   }
   return false;
 }

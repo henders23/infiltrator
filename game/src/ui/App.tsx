@@ -1,8 +1,16 @@
 import { useEffect, useRef } from 'react';
-import { Engine } from '../game/engine';
+import { Engine, OrderMode } from '../game/engine';
 import { makeDemoMission } from '../content/maps';
 import { CSS, FONT_DISPLAY, FONT_MONO } from './theme';
 import { useGame } from './store';
+
+const ORDER_MODES: { mode: OrderMode; label: string; title: string }[] = [
+  { mode: 'move', label: 'MOVE', title: 'Move / path (default)' },
+  { mode: 'breach', label: 'BREACH', title: 'Breach a door — loud, stuns those beyond (B)' },
+  { mode: 'flash', label: 'FLASH', title: 'Throw a flashbang — stuns, no damage (F)' },
+  { mode: 'frag', label: 'FRAG', title: 'Throw a frag — damages in radius (G)' },
+  { mode: 'overwatch', label: 'WATCH', title: 'Set overwatch on an arc (O)' },
+];
 
 export function App() {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -33,12 +41,27 @@ export function App() {
   useEffect(() => {
     if (!engine) return;
     const onKey = (ev: KeyboardEvent) => {
+      const k = ev.key.toLowerCase();
       if (ev.code === 'Space') {
         ev.preventDefault();
         engine.togglePause();
-      } else if (ev.key.toLowerCase() === 'c') {
+      } else if (k === 'c') {
         engine.clearSelectedOrder();
+      } else if (k === 'b') {
+        engine.setOrderMode('breach');
+      } else if (k === 'f') {
+        engine.setOrderMode('flash');
+      } else if (k === 'g') {
+        engine.setOrderMode('frag');
+      } else if (k === 'o') {
+        engine.setOrderMode('overwatch');
+      } else if (k === 'h') {
+        engine.toggleHoldFire();
+      } else if (ev.key === 'Tab') {
+        ev.preventDefault();
+        engine.selectNextAttention();
       } else if (ev.key === 'Escape') {
+        engine.setOrderMode('move');
         engine.selectedId = null;
       } else if (/^[1-9]$/.test(ev.key)) {
         const friendlies = engine.world.units.filter((u) => u.faction === 'friendly');
@@ -68,6 +91,15 @@ export function App() {
           <span style={styles.title}>INFILTRATOR</span>
           <span style={styles.mission}>{snapshot?.missionName ?? '—'}</span>
           <span style={{ flex: 1 }} />
+          {!!snapshot?.attentionCount && (
+            <button
+              className="btn attn-chip"
+              onClick={() => engine?.selectNextAttention()}
+              title="Cycle to a soldier needing orders (Tab)"
+            >
+              ● {snapshot.attentionCount} NEED ORDERS
+            </button>
+          )}
           <span style={styles.clock}>{clock}</span>
           <button
             className="btn go"
@@ -113,6 +145,29 @@ export function App() {
           </div>
         )}
 
+        {/* order-mode palette — what the next click on the deck does */}
+        {selected && (
+          <div style={styles.palette}>
+            {ORDER_MODES.map((m) => (
+              <button
+                key={m.mode}
+                className={'mode' + (snapshot?.orderMode === m.mode ? ' on' : '')}
+                onClick={() => engine?.setOrderMode(m.mode)}
+                title={m.title}
+              >
+                {m.label}
+              </button>
+            ))}
+            <button
+              className={'mode' + (selected.weaponsFree ? '' : ' warn')}
+              onClick={() => engine?.toggleHoldFire()}
+              title="Toggle hold-fire / weapons-free (H)"
+            >
+              {selected.weaponsFree ? 'FIRE FREE' : 'HOLD FIRE'}
+            </button>
+          </div>
+        )}
+
         <div style={styles.roster}>
           {friendlies.map((u, i) => {
             const sel = u.id === snapshot?.selectedId;
@@ -150,13 +205,13 @@ export function App() {
         </div>
 
         <div style={styles.help}>
-          <div><span className="k">Click soldier</span> / <span className="k">1–4</span> select</div>
-          <div><span className="k">Left-click</span> set path (auto) · <span className="k">Shift</span> add leg</div>
-          <div><span className="k">Right-click</span> clear order · <span className="k">C</span> clear</div>
-          <div><span className="k">Space</span> execute / pause</div>
-          <div><span className="k">Wheel</span> zoom · <span className="k">Middle-drag</span> pan</div>
+          <div><span className="k">Click soldier</span> / <span className="k">1–4</span> select · <span className="k">Tab</span> next alert</div>
+          <div><span className="k">Left-click</span> path (auto) · <span className="k">Shift</span> add leg</div>
+          <div><span className="k">B</span> breach door · <span className="k">F</span> flash · <span className="k">G</span> frag</div>
+          <div><span className="k">O</span> overwatch · <span className="k">H</span> hold-fire · <span className="k">C</span> clear</div>
+          <div><span className="k">Space</span> execute/pause · <span className="k">Wheel</span> zoom · <span className="k">Mid-drag</span> pan</div>
           <div style={{ color: CSS.muted, marginTop: 4 }}>
-            Orders persist — untouched soldiers hold their last order.
+            Stack → flash → breach → clear. Orders persist until re-tasked.
           </div>
         </div>
 
@@ -200,6 +255,7 @@ const styles: Record<string, React.CSSProperties> = {
   selPanel: { padding: '10px 14px', borderBottom: `1px solid ${CSS.line}`, background: '#0a121b' },
   selName: { color: CSS.ink, fontWeight: 700, letterSpacing: 1, fontSize: 13, marginBottom: 5 },
   selRow: { display: 'flex', justifyContent: 'space-between', fontFamily: FONT_MONO, fontSize: 11, marginTop: 2, color: CSS.ink },
+  palette: { display: 'flex', flexWrap: 'wrap', gap: 5, padding: '8px 14px', borderBottom: `1px solid ${CSS.line}` },
   roster: { flex: 1, overflow: 'auto' },
   cmd: { padding: '10px 14px', borderTop: `1px solid ${CSS.line}` },
   help: { padding: '10px 14px', fontSize: 11, color: CSS.muted, lineHeight: 1.8, borderTop: `1px solid ${CSS.line}` },
@@ -216,6 +272,15 @@ const globalCss = `
   .command-bar .btn { width: auto; }
   .btn.go { width: auto; border-color: ${CSS.orange}; color: ${CSS.orange}; padding: 6px 14px; }
   .btn.go:hover { background: #241206; }
+  .btn.attn-chip { width: auto; border-color: ${CSS.orange}; color: ${CSS.orange}; padding: 6px 12px;
+    font-size: 11px; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .mode { background: #0d1720; color: ${CSS.muted}; border: 1px solid ${CSS.line};
+    padding: 5px 9px; letter-spacing: 1px; font-weight: 700; cursor: pointer; border-radius: 3px;
+    font-family: ${FONT_DISPLAY}; font-size: 11px; }
+  .mode:hover { color: ${CSS.cyan}; border-color: ${CSS.cyanDim}; }
+  .mode.on { background: #0f2230; color: ${CSS.cyan}; border-color: ${CSS.cyan}; }
+  .mode.warn { color: ${CSS.orange}; border-color: ${CSS.orange}; }
   .unit { display: flex; align-items: center; gap: 10px; padding: 9px 14px;
     border-bottom: 1px solid ${CSS.line}; cursor: pointer; }
   .unit:hover { background: #0f1826; }

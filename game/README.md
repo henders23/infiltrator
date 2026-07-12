@@ -1,8 +1,9 @@
-# INFILTRATOR — game (M0 + M1 + M2)
+# INFILTRATOR — game (M0–M3)
 
 The production build of INFILTRATOR. This directory implements **M0** (scaffold +
-deterministic loop), **M1** (plan-then-execute movement with persistent orders), and
-**M2** (combat: LOS, cover, shooting, suppression, death) from
+deterministic loop), **M1** (plan-then-execute movement with persistent orders),
+**M2** (combat: LOS, cover, shooting, suppression, death), and **M3** (entries: breachable
+doors, flash/frag grenades, overwatch, hold-fire, noise) from
 [`../docs/BUILD_PLAN.md`](../docs/BUILD_PLAN.md). It rebuilds the control model proven in
 [`../slice`](../slice) on the real architecture.
 
@@ -21,25 +22,28 @@ Other scripts: `npm run build` (typecheck + production build), `npm run preview`
 
 | Input | Action |
 |---|---|
-| Click a soldier / `1`–`4` | Select |
-| Left-click deck | Set an auto-pathed move order for the selected soldier |
-| Shift + left-click | Append another leg (waypoint) to the path |
+| Click a soldier / `1`–`4` | Select · `Tab` cycles soldiers needing orders |
+| Left-click deck | Auto-pathed move for the selected soldier |
+| Shift + left-click | Append another leg (waypoint) to the plan |
+| `B` then click a door | **Breach** it (loud, stuns the room beyond) |
+| `F` / `G` then click a tile | Throw a **flashbang** / **frag** grenade there |
+| `O` then click | Set **overwatch** on that arc (fires only within the cone) |
+| `H` | Toggle **hold-fire / weapons-free** for the selected soldier |
 | Right-click / `C` | Clear the selected soldier's order |
-| `Space` | Execute ↔ pause |
-| Mouse wheel | Zoom · **Middle-drag** to pan |
+| `Space` | Execute ↔ pause · Wheel zoom · **Middle-drag** pan |
 
-Plan while paused, hit **Execute**, watch it play out — and note that soldiers you
-didn't re-task **keep their last order** (the persistent-order model, DESIGN §4.1).
-Auto-pauses the first time a hostile is spotted **and the moment one of your own goes
-down**. Soldiers auto-engage visible hostiles in range; cover, range, and suppression
-decide the trade, and a downed soldier bleeds out (stabilize/drag arrives in M7).
+Plan while paused, hit **Execute**, watch it play out — soldiers you didn't re-task **keep
+their last order** (persistent orders, DESIGN §4.1). Chain waypoints for the signature
+entry: **stack → flash → breach → clear.** Closed doors block movement and sight until
+opened (quietly by walking through, or loudly by breaching — which stuns those beyond but
+makes noise that wakes nearby defenders). Auto-pauses on first contact and on a casualty.
 
 ## Architecture (see `BUILD_PLAN.md` §2)
 
 ```
 src/
   sim/        # deterministic, headless — NO Pixi/DOM/wall-clock/Math.random.
-              #   grid · pathfinding (A*) · los · cover · combat · orders · unit · world · rng
+              #   grid · pathfinding (A*) · los · cover · combat · orders (plans) · unit · world · rng
   game/       # engine: Pixi render, pan/zoom camera, input, fixed-timestep loop
   render/     # (draw helpers live in game/engine for now; split out as they grow)
   ui/         # React "1c CONSOLE" shell + zustand store + theme tokens
@@ -57,10 +61,14 @@ saves and replays reproducible.
 persist across pauses, plan-then-execute with a live path preview, pan/zoom camera, the
 console UI; **combat** — line of sight, directional cover, weapons with hull-safe
 ratings, armor/HP, suppression (pins movement) and stress, downs + bleed-out + death,
-simple hostile AI (idle → alert → engage with a reaction delay), tracers, and auto-pause
-on first contact and on a casualty. 22 deterministic sim tests.
+hostile AI (idle → alert → engage with a reaction delay), tracers; **entries** —
+breachable doors that block move + sight, quiet-open vs loud breach (stuns the room),
+flash/frag grenades, overwatch arcs with reaction fire, hold-fire, noise that wakes
+defenders, a waypoint order-mode palette and a needs-attention selector; auto-pause on
+first contact and on a casualty. **29 deterministic sim tests.**
 
-**Not yet (later milestones):** breach & overwatch waypoints (M3), hull venting (M4),
-mission objectives & defense mode (M5), the strategic layer (M6), the survivor/roster
-loop with stabilize/drag (M7), the four faction AIs and detailed deck-plan art (M8+).
-Enemies here are simple hold-and-engage defenders; distinct faction doctrines come in M8.
+**Not yet (later milestones):** hull venting (M4), mission objectives & defense mode
+(M5), the strategic layer (M6), the survivor/roster loop with stabilize/drag (M7), the
+four faction AIs and detailed deck-plan art (M8+). Enemies here are simple hold-and-engage
+defenders; distinct faction doctrines come in M8. Fog is still a radius stub (LOS-gated
+fog is a later refinement) — combat sight already respects walls and closed doors.

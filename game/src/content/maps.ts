@@ -70,7 +70,15 @@ export function makeDemoMission(): Mission {
       weapon: 'saw', // hull-breaching — big damage, will crack a hull in M4
       armor: 16,
     }),
-    // defenders hold in the rooms with lighter armour; AI wakes on contact
+    // defenders hold in the rooms with lighter armour; AI wakes on contact/noise.
+    // one sits just behind the upper door — a breach there stuns him.
+    makeUnit({
+      name: 'HOSTILE',
+      faction: 'hostile',
+      pos: { x: 14.5, y: 6.5 },
+      weapon: 'carbine',
+      armor: 6,
+    }),
     makeUnit({
       name: 'HOSTILE',
       faction: 'hostile',
@@ -81,16 +89,9 @@ export function makeDemoMission(): Mission {
     makeUnit({
       name: 'HOSTILE',
       faction: 'hostile',
-      pos: { x: 29.5, y: 6.5 },
+      pos: { x: 27.5, y: 13.5 },
       weapon: 'pistol',
       armor: 4,
-    }),
-    makeUnit({
-      name: 'HOSTILE',
-      faction: 'hostile',
-      pos: { x: 27.5, y: 13.5 },
-      weapon: 'carbine',
-      armor: 6,
     }),
   ];
 

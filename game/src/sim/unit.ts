@@ -1,4 +1,4 @@
-import { HOLD, Order } from './orders';
+import { holdOrder, Order } from './orders';
 
 export type Faction = 'friendly' | 'hostile';
 
@@ -33,6 +33,10 @@ export interface Unit {
   stress: number; // 0..100 — rises under fire; drives suppression/panic
   /** Sim-time until which the unit is suppressed (pinned, worse aim). */
   suppressedUntil: number;
+  /** Sim-time until which the unit is stunned by a breach/flash (can't act at all). */
+  stunnedUntil: number;
+  /** Weapons-free (fires on sight) vs hold-fire (won't initiate). */
+  weaponsFree: boolean;
   /** Seconds until this unit may fire again. */
   fireCooldown: number;
   /** Hostile AI posture + reaction timer + current target. */
@@ -65,11 +69,13 @@ export function makeUnit(init: Partial<Unit> & Pick<Unit, 'name' | 'faction'>): 
     armor: init.armor ?? 10,
     stress: init.stress ?? 0,
     suppressedUntil: init.suppressedUntil ?? 0,
+    stunnedUntil: init.stunnedUntil ?? 0,
+    weaponsFree: init.weaponsFree ?? true,
     fireCooldown: init.fireCooldown ?? 0,
     combat: init.combat ?? 'idle',
     combatTimer: init.combatTimer ?? 0,
     targetId: init.targetId ?? null,
-    order: init.order ?? HOLD,
+    order: init.order ?? holdOrder(),
     attention: init.attention ?? null,
   };
 }
@@ -77,4 +83,9 @@ export function makeUnit(init: Partial<Unit> & Pick<Unit, 'name' | 'faction'>): 
 /** A unit that can perceive, move, and shoot this tick. */
 export function isActive(u: Unit): boolean {
   return u.alive && !u.downed;
+}
+
+/** Stunned units are alive but can't move, shoot, or react. */
+export function isStunned(u: Unit, time: number): boolean {
+  return u.stunnedUntil > time;
 }
