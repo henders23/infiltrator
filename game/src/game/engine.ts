@@ -4,7 +4,8 @@
 // feeding ticks to the sim — orders can still be edited while paused, which *is* the
 // plan-then-execute loop (DESIGN §4.1).
 
-import { Application, Container, Graphics, Text } from 'pixi.js';
+import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text, Texture } from 'pixi.js';
+import soldiersUrl from '../assets/soldiers.png';
 import { DOOR, WALL } from '../sim/grid';
 import { findPath } from '../sim/pathfinding';
 import {
@@ -30,6 +31,14 @@ const EMIT_INTERVAL = 0.1; // throttle UI snapshots to ~10 Hz
 
 /** What the next left-click on the deck means for the selected soldier. */
 export type OrderMode = 'move' | 'breach' | 'flash' | 'frag' | 'overwatch' | 'vent';
+
+// top-down soldier sprite sheet: 9 columns × 4 rows of 36 troopers, each aiming "up"
+const SHEET_COLS = 9;
+const SHEET_ROWS = 4;
+const SHEET_W = 1536;
+const SHEET_H = 1024;
+const CELL_W = SHEET_W / SHEET_COLS;
+const CELL_H = SHEET_H / SHEET_ROWS;
 
 export interface UnitSnapshot {
   id: number;
@@ -66,6 +75,7 @@ export interface Snapshot {
 interface UnitView {
   root: Container;
   ring: Graphics;
+  sprite: Sprite;
   body: Graphics;
   label: Text;
 }
@@ -84,6 +94,8 @@ export class Engine {
   private readonly unitLayer = new Container();
   private readonly fxG = new Graphics(); // tracers / muzzle / blasts (above units)
   private readonly views = new Map<number, UnitView>();
+  private soldierSheet: Texture | null = null;
+  private readonly cellTextures = new Map<number, Texture>();
 
   paused = true;
   selectedId: number | null = null;
@@ -122,6 +134,12 @@ export class Engine {
 
     this.stage.addChild(this.deckG, this.doorsG, this.hullG, this.fogG, this.planG, this.unitLayer, this.fxG);
     this.app.stage.addChild(this.stage);
+
+    try {
+      this.soldierSheet = await Assets.load(soldiersUrl);
+    } catch {
+      this.soldierSheet = null; // fall back to marker rendering if the sheet fails to load
+    }
 
     this.drawDeck();
     this.buildUnitViews();
@@ -570,19 +588,53 @@ export class Engine {
     }
   }
 
+  /** A sub-texture for one trooper cell of the sheet (inset to trim black margins/bleed). */
+  private cellTexture(index: number): Texture | null {
+    if (!this.soldierSheet) return null;
+    const cached = this.cellTextures.get(index);
+    if (cached) return cached;
+    const col = index % SHEET_COLS;
+    const row = Math.floor(index / SHEET_COLS) % SHEET_ROWS;
+    const insetX = CELL_W * 0.08;
+    const insetY = CELL_H * 0.05;
+    const frame = new Rectangle(
+      col * CELL_W + insetX,
+      row * CELL_H + insetY,
+      CELL_W - insetX * 2,
+      CELL_H - insetY * 2,
+    );
+    const tex = new Texture({ source: this.soldierSheet.source, frame });
+    this.cellTextures.set(index, tex);
+    return tex;
+  }
+
   private buildUnitViews(): void {
+    let fi = 0;
+    let hi = 0;
     for (const u of this.world.units) {
       const root = new Container();
       const ring = new Graphics();
+      const sprite = new Sprite();
+      sprite.anchor.set(0.5);
+      // friendlies get the first cells; hostiles get later cells and a red tint
+      const cell = u.faction === 'friendly' ? fi++ : 18 + hi++;
+      const tex = this.cellTexture(cell);
+      if (tex) {
+        sprite.texture = tex;
+        const scale = (TILE_PX * 1.7) / tex.frame.height;
+        sprite.scale.set(scale);
+      } else {
+        sprite.visible = false;
+      }
       const body = new Graphics();
       const label = new Text({
-        text: u.faction === 'friendly' ? '' : 'E',
-        style: { fill: COLORS.navy, fontFamily: FONT_MONO, fontSize: 12, fontWeight: 'bold' },
+        text: '',
+        style: { fill: COLORS.ink, fontFamily: FONT_MONO, fontSize: 11, fontWeight: 'bold' },
       });
       label.anchor.set(0.5);
-      root.addChild(ring, body, label);
+      root.addChild(ring, sprite, body, label);
       this.unitLayer.addChild(root);
-      this.views.set(u.id, { root, ring, body, label });
+      this.views.set(u.id, { root, ring, sprite, body, label });
     }
   }
 
@@ -804,6 +856,7 @@ export class Engine {
 
       // downed friendly → a muted casualty marker, no combat chrome
       if (u.downed) {
+        view.sprite.visible = false;
         const r = TILE_PX * 0.26;
         view.body
           .moveTo(-r, -r)
@@ -815,46 +868,42 @@ export class Engine {
         continue;
       }
 
-      if (u.id === this.selectedId) view.ring.circle(0, 0, TILE_PX * 0.46).stroke({ width: 2, color });
+      // the trooper sprite: point it along its facing (sheet art aims "up"), tint foes red
+      if (view.sprite.texture) {
+        view.sprite.visible = true;
+        view.sprite.rotation = Math.atan2(u.facing.y, u.facing.x) + Math.PI / 2;
+        view.sprite.tint = u.faction === 'friendly' ? 0xffffff : 0xff7a5c;
+      }
+
+      // a soft footprint disc under each trooper so friend/foe reads at a glance
+      view.ring.circle(0, 0, TILE_PX * 0.46).fill({ color, alpha: 0.1 });
+      if (u.id === this.selectedId) view.ring.circle(0, 0, TILE_PX * 0.52).stroke({ width: 2, color });
       if (u.attention === 'path-complete' && u.faction === 'friendly')
-        view.ring.circle(0, 0, TILE_PX * 0.52).stroke({ width: 1, color: COLORS.orange, alpha: 0.7 });
-      // suppressed / pinned halo
+        view.ring.circle(0, 0, TILE_PX * 0.56).stroke({ width: 1, color: COLORS.orange, alpha: 0.7 });
       if (u.suppressedUntil > this.world.time)
-        view.ring.circle(0, 0, TILE_PX * 0.4).stroke({ width: 3, color: COLORS.orange, alpha: 0.5 });
-      // stunned — a dashed white ring (out of the fight for a moment)
+        view.ring.circle(0, 0, TILE_PX * 0.48).stroke({ width: 3, color: COLORS.orange, alpha: 0.5 });
       if (isStunned(u, this.world.time)) {
         for (let a = 0; a < 8; a++) {
           const t0 = (a / 8) * Math.PI * 2;
-          view.ring
-            .arc(0, 0, TILE_PX * 0.44, t0, t0 + 0.35)
-            .stroke({ width: 2.5, color: 0xffffff, alpha: 0.85 });
+          view.ring.arc(0, 0, TILE_PX * 0.52, t0, t0 + 0.35).stroke({ width: 2.5, color: 0xffffff, alpha: 0.85 });
         }
       }
-      // EVA suit — a steel ring; exposed-to-vacuum — a red asphyxiation ring
-      if (u.suit) view.ring.circle(0, 0, TILE_PX * 0.5).stroke({ width: 1.5, color: 0x8fd8ff, alpha: 0.6 });
+      if (u.suit) view.ring.circle(0, 0, TILE_PX * 0.58).stroke({ width: 1.5, color: 0x8fd8ff, alpha: 0.6 });
       else if (this.world.pressureAt(Math.floor(u.pos.x), Math.floor(u.pos.y)) < 0.3)
-        view.ring.circle(0, 0, TILE_PX * 0.5).stroke({ width: 2, color: COLORS.red, alpha: 0.8 });
+        view.ring.circle(0, 0, TILE_PX * 0.58).stroke({ width: 2, color: COLORS.red, alpha: 0.8 });
 
-      view.body.circle(0, 0, TILE_PX * 0.3).fill(color);
-      // facing tick
-      view.body
-        .moveTo(0, 0)
-        .lineTo(u.facing.x * TILE_PX * 0.42, u.facing.y * TILE_PX * 0.42)
-        .stroke({ width: 2, color: COLORS.navy, alpha: 0.6 });
-      // hp pip
+      // hp + stress pips, below the trooper so the art stays clear
       const w = TILE_PX * 0.7;
-      view.body.rect(-w / 2, TILE_PX * 0.4, w, 3).fill(COLORS.wall);
-      view.body.rect(-w / 2, TILE_PX * 0.4, (w * Math.max(0, u.hp)) / u.maxHp, 3).fill(color);
-      // stress pip (orange) under the hp pip, only when it matters
-      if (u.stress > 1) {
-        view.body.rect(-w / 2, TILE_PX * 0.4 + 4, (w * Math.min(100, u.stress)) / 100, 2).fill(COLORS.orange);
-      }
+      const py = TILE_PX * 0.62;
+      view.body.rect(-w / 2, py, w, 3).fill(COLORS.wall);
+      view.body.rect(-w / 2, py, (w * Math.max(0, u.hp)) / u.maxHp, 3).fill(color);
+      if (u.stress > 1) view.body.rect(-w / 2, py + 4, (w * Math.min(100, u.stress)) / 100, 2).fill(COLORS.orange);
 
+      // small index tag for friendlies (foes read by their red tint)
       if (u.faction === 'friendly') {
         const n = this.world.units.filter((x) => x.faction === 'friendly').indexOf(u) + 1;
         view.label.text = String(n);
-      } else {
-        view.label.text = 'E';
+        view.label.position.set(-TILE_PX * 0.42, -TILE_PX * 0.42);
       }
     }
   }
