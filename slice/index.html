@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>INFILTRATOR — Control Slice</title>
+<style>
+  :root{
+    --navy:#05080d; --panel:#0b1119; --line:#16202e;
+    --cyan:#3fd0f0; --cyan-dim:#1c6f82; --orange:#ff8b3d; --red:#ff5c33;
+    --ink:#c9d6e2; --muted:#5f7183;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--navy);color:var(--ink);
+    font-family:"Rajdhani","Segoe UI",system-ui,sans-serif;overflow:hidden}
+  #wrap{display:flex;height:100vh}
+  canvas{display:block;background:var(--navy);cursor:crosshair}
+  #side{width:290px;flex:none;background:var(--panel);border-left:1px solid var(--line);
+    display:flex;flex-direction:column}
+  .bar{padding:10px 14px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:3px;color:var(--cyan);font-weight:700}
+  h1 small{display:block;color:var(--muted);letter-spacing:2px;font-size:10px;margin-top:2px}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+  #status{padding:10px 14px;font-size:13px;letter-spacing:1px}
+  #status b{color:var(--orange)}
+  .roster{flex:1;overflow:auto}
+  .unit{padding:9px 14px;border-bottom:1px solid var(--line);cursor:pointer;
+    display:flex;align-items:center;gap:10px}
+  .unit:hover{background:#0f1826}
+  .unit.sel{background:#0f1c28;box-shadow:inset 3px 0 0 var(--cyan)}
+  .dot{width:10px;height:10px;border-radius:50%;flex:none;background:var(--cyan)}
+  .unit .nm{font-weight:600;letter-spacing:1px}
+  .unit .sub{font-size:11px;color:var(--muted)}
+  .hpbar{height:4px;background:#22303f;border-radius:2px;margin-top:3px;width:120px;overflow:hidden}
+  .hpbar > i{display:block;height:100%;background:var(--cyan)}
+  .help{padding:10px 14px;font-size:11px;color:var(--muted);line-height:1.7;border-top:1px solid var(--line)}
+  .key{color:var(--cyan);font-family:"IBM Plex Mono",monospace}
+  #cmd{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}
+  button{flex:1;background:#12202e;color:var(--ink);border:1px solid var(--cyan-dim);
+    padding:9px;letter-spacing:2px;font-weight:700;cursor:pointer;border-radius:3px;
+    font-family:inherit;font-size:12px}
+  button:hover{background:#16304200;border-color:var(--cyan);color:var(--cyan)}
+  button.go{border-color:var(--orange);color:var(--orange)}
+  button.go:hover{background:#241206}
+  #log{height:120px;overflow:auto;padding:8px 14px;font-size:11px;line-height:1.6;
+    border-top:1px solid var(--line);font-family:"IBM Plex Mono",monospace;color:var(--muted)}
+  #log .hit{color:var(--red)} #log .ok{color:var(--cyan)} #log .warn{color:var(--orange)}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="side">
+    <div class="bar"><h1>INFILTRATOR<small>CONTROL SLICE · PLAN-THEN-EXECUTE</small></h1></div>
+    <div id="status">STATE: <b id="st">PLANNING</b></div>
+    <div class="roster" id="roster"></div>
+    <div id="cmd">
+      <button id="clearBtn" title="Clear selected soldier's path (C)">CLEAR</button>
+      <button id="goBtn" class="go" title="Execute / Pause (Space)">EXECUTE</button>
+    </div>
+    <div class="help">
+      <div><span class="key">Click soldier</span> or press <span class="key">1</span>/<span class="key">2</span> to select</div>
+      <div><span class="key">Left-click deck</span> add path waypoint</div>
+      <div><span class="key">Right-click</span> remove last waypoint</div>
+      <div><span class="key">Space</span> execute / pause &nbsp; <span class="key">C</span> clear path</div>
+      <div>Auto-pauses on enemy contact.</div>
+    </div>
+    <div id="log"></div>
+  </div>
+</div>
+<script>
+"use strict";
+// ── INFILTRATOR control-feel slice ────────────────────────────────────────────
+// Dependency-free proof of the Door-Kickers-style plan-then-execute loop.
+// Deliberately vanilla Canvas + simple sim; production rebuilds this on Pixi.
+
+const T = 34;                 // tile size in px
+const COLS = 30, ROWS = 22;   // deck dimensions
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+// ── Deck plan: 0 floor, 1 wall, 2 door ────────────────────────────────────────
+// Hand-laid two-room boarding scenario: entry corridor → junction → two rooms.
+const G = [];
+(function buildDeck(){
+  for(let y=0;y<ROWS;y++){ G[y]=[]; for(let x=0;x<COLS;x++){
+    G[y][x] = (x===0||y===0||x===COLS-1||y===ROWS-1) ? 1 : 0;
+  }}
+  const wallRect=(x0,y0,x1,y1)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)G[y][x]=1;};
+  const clear=(x0,y0,x1,y1)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)G[y][x]=0;};
+  // interior walls partitioning two rooms on the right
+  wallRect(14,1,14,ROWS-2);       // spine wall
+  clear(14,10,14,11);             // corridor gap into junction
+  wallRect(14,6,29,6);            // upper room floor/ceiling divide
+  wallRect(14,15,29,15);          // lower room divide
+  // doors (2) into the two rooms
+  G[8][14]=2;   // door to upper room
+  G[17][14]=2;  // door to lower room
+})();
+
+const isBlocked=(x,y)=> x<0||y<0||x>=COLS||y>=ROWS || G[y][x]===1;
+const isDoor=(x,y)=> G[y]&&G[y][x]===2;
+
+// ── Entities ───────────────────────────────────────────────────────────────
+let selId = 0;
+const soldiers = [
+  {id:0,name:"CPL. VOSS",  x:3,y:9, hp:100,path:[],prog:0,color:"#3fd0f0",alive:true,firing:0},
+  {id:1,name:"PVT. OKORO", x:3,y:12,hp:100,path:[],prog:0,color:"#7fe0f5",alive:true,firing:0},
+];
+const enemy = {x:24,y:3, hp:100, alive:true, patrol:[[24,3],[27,3],[27,10],[24,10]], leg:0, t:0, firing:0};
+
+// ── State machine: PLANNING (paused) ↔ EXECUTING ──────────────────────────────
+let executing = false;
+const setState = s => { executing = (s==="EXECUTING");
+  document.getElementById("st").textContent = executing ? "EXECUTING" : "PLANNING";
+  document.getElementById("goBtn").textContent = executing ? "PAUSE" : "EXECUTE"; };
+
+function log(msg,cls){ const l=document.getElementById("log");
+  const d=document.createElement("div"); if(cls)d.className=cls; d.textContent=msg;
+  l.appendChild(d); l.scrollTop=l.scrollHeight; }
+
+// ── Path planning: click appends a straight leg (Bresenham) toward the target ──
+function planTo(s,tx,ty){
+  const from = s.path.length ? s.path[s.path.length-1] : {x:s.x,y:s.y};
+  const line = bres(from.x,from.y,tx,ty);
+  for(let i=1;i<line.length;i++){ const p=line[i];
+    if(isBlocked(p.x,p.y)) break;          // stop the leg at the first wall
+    s.path.push(p);
+  }
+}
+function bres(x0,y0,x1,y1){
+  const pts=[]; let dx=Math.abs(x1-x0),dy=Math.abs(y1-y0);
+  let sx=x0<x1?1:-1, sy=y0<y1?1:-1, err=dx-dy, x=x0,y=y0;
+  for(let g=0;g<400;g++){ pts.push({x,y}); if(x===x1&&y===y1)break;
+    const e2=2*err; if(e2>-dy){err-=dy;x+=sx;} if(e2<dx){err+=dx;y+=sy;} }
+  return pts;
+}
+
+// ── Line of sight (grid raycast, walls & closed logic ignored for doors) ──────
+function los(ax,ay,bx,by){
+  const line=bres(ax,ay,bx,by);
+  for(let i=1;i<line.length-1;i++){ if(G[line[i].y][line[i].x]===1) return false; }
+  return true;
+}
+function dist(ax,ay,bx,by){ return Math.hypot(ax-bx,ay-by); }
+
+// ── Simulation tick (fixed step while executing) ──────────────────────────────
+let moveAcc=0; const MOVE_INTERVAL=0.14; // seconds per tile
+function step(dt){
+  if(!executing) return;
+  moveAcc+=dt;
+  // advance soldiers one tile at a time along their planned path
+  while(moveAcc>=MOVE_INTERVAL){
+    moveAcc-=MOVE_INTERVAL;
+    for(const s of soldiers){
+      if(!s.alive) continue;
+      if(s.prog < s.path.length){ const n=s.path[s.prog]; s.x=n.x; s.y=n.y; s.prog++; }
+    }
+    // enemy patrol movement
+    if(enemy.alive){
+      const tgt=enemy.patrol[enemy.leg];
+      if(enemy.x<tgt[0])enemy.x++; else if(enemy.x>tgt[0])enemy.x--;
+      else if(enemy.y<tgt[1])enemy.y++; else if(enemy.y>tgt[1])enemy.y--;
+      if(enemy.x===tgt[0]&&enemy.y===tgt[1]) enemy.leg=(enemy.leg+1)%enemy.patrol.length;
+    }
+  }
+  // ── combat: any soldier with LOS+range on the enemy trades fire ─────────────
+  let contact=false;
+  for(const s of soldiers){
+    if(!s.alive||!enemy.alive) continue;
+    if(dist(s.x,s.y,enemy.x,enemy.y)<=9 && los(s.x,s.y,enemy.x,enemy.y)){
+      if(!contact){ log("● CONTACT — hostile spotted","warn"); }
+      contact=true;
+      s.firing=1; enemy.firing=1;
+      enemy.hp -= dt*38;
+      s.hp    -= dt*22;
+      if(enemy.hp<=0){ enemy.alive=false; log("✓ Hostile down. Deck clear.","ok"); }
+      if(s.hp<=0 && s.alive){ s.alive=false; log(`✗ ${s.name} is DOWN`,"hit"); }
+    } else { s.firing=Math.max(0,s.firing-dt*4); }
+  }
+  if(!enemy.alive) enemy.firing=0; else enemy.firing=Math.max(0,enemy.firing-dt*4);
+  // auto-pause the instant contact begins — the DK1 "plan meets reality" beat
+  if(contact && executing && !step._wasContact){ setState("PLANNING"); log("‖ Auto-paused on contact.","warn"); }
+  step._wasContact = contact;
+  refreshRoster();
+}
+
+// ── Rendering ────────────────────────────────────────────────────────────────
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // deck tiles
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    const v=G[y][x];
+    if(v===1){ ctx.fillStyle="#1b2a3c"; ctx.fillRect(x*T,y*T,T,T);
+      ctx.strokeStyle="#2b405a"; ctx.lineWidth=1; ctx.strokeRect(x*T+.5,y*T+.5,T-1,T-1); }
+    else { ctx.fillStyle="#080d14"; ctx.fillRect(x*T,y*T,T,T);
+      ctx.strokeStyle="#0f1826"; ctx.lineWidth=1; ctx.strokeRect(x*T+.5,y*T+.5,T-1,T-1); }
+    if(v===2){ ctx.fillStyle="#0b141d"; ctx.fillRect(x*T,y*T,T,T);
+      ctx.strokeStyle="#ff8b3d"; ctx.lineWidth=2;
+      ctx.strokeRect(x*T+4,y*T+4,T-8,T-8);
+      ctx.fillStyle="#ff8b3d"; ctx.font="9px 'IBM Plex Mono',monospace";
+      ctx.fillText("DOOR",x*T+3,y*T+T-5); }
+  }
+  // planned paths (only for the selected soldier, brightly; others dim)
+  for(const s of soldiers){
+    if(!s.alive||!s.path.length) continue;
+    const sel = s.id===selId;
+    ctx.strokeStyle = sel ? s.color : "#274050";
+    ctx.lineWidth = sel?2:1.5; ctx.setLineDash([6,5]); ctx.beginPath();
+    ctx.moveTo(cx(s.x),cy(s.y));
+    for(let i=s.prog;i<s.path.length;i++) ctx.lineTo(cx(s.path[i].x),cy(s.path[i].y));
+    ctx.stroke(); ctx.setLineDash([]);
+    // waypoint pips
+    if(sel) for(let i=s.prog;i<s.path.length;i++){
+      ctx.fillStyle=s.color; ctx.globalAlpha=.5;
+      ctx.beginPath(); ctx.arc(cx(s.path[i].x),cy(s.path[i].y),2.5,0,7); ctx.fill();
+      ctx.globalAlpha=1;
+    }
+    // destination marker
+    const d=s.path[s.path.length-1];
+    ctx.strokeStyle=sel?s.color:"#274050"; ctx.lineWidth=1.5;
+    ctx.strokeRect(cx(d.x)-7,cy(d.y)-7,14,14);
+  }
+  // enemy
+  if(enemy.alive){
+    if(enemy.firing>0){ ctx.fillStyle="rgba(255,92,51,.18)";
+      ctx.beginPath(); ctx.arc(cx(enemy.x),cy(enemy.y),9*T,0,7); ctx.fill(); }
+    drawUnit(enemy.x,enemy.y,"#ff5c33",enemy.hp,"E");
+  }
+  // soldiers
+  for(const s of soldiers){
+    if(!s.alive){ drawDown(s.x,s.y); continue; }
+    if(s.firing>0){ ctx.strokeStyle="rgba(63,208,240,.5)"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(cx(s.x),cy(s.y)); ctx.lineTo(cx(enemy.x),cy(enemy.y)); ctx.stroke(); }
+    const ring = s.id===selId;
+    drawUnit(s.x,s.y,s.color,s.hp, String(s.id+1), ring);
+  }
+}
+const cx=i=>i*T+T/2, cy=i=>i*T+T/2;
+function drawUnit(gx,gy,col,hp,label,ring){
+  const px=cx(gx),py=cy(gy);
+  if(ring){ ctx.strokeStyle=col; ctx.lineWidth=2; ctx.beginPath();
+    ctx.arc(px,py,T*0.46,0,7); ctx.stroke(); }
+  ctx.fillStyle=col; ctx.beginPath(); ctx.arc(px,py,T*0.3,0,7); ctx.fill();
+  ctx.fillStyle="#05080d"; ctx.font="bold 12px 'IBM Plex Mono',monospace";
+  ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(label,px,py);
+  ctx.textAlign="start"; ctx.textBaseline="alphabetic";
+  // hp pip
+  ctx.fillStyle="#22303f"; ctx.fillRect(px-11,py+T*0.36,22,3);
+  ctx.fillStyle=col; ctx.fillRect(px-11,py+T*0.36,22*Math.max(0,hp)/100,3);
+}
+function drawDown(gx,gy){ const px=cx(gx),py=cy(gy);
+  ctx.strokeStyle="#5f7183"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(px-8,py-8); ctx.lineTo(px+8,py+8);
+  ctx.moveTo(px+8,py-8); ctx.lineTo(px-8,py+8); ctx.stroke(); }
+
+// ── Input ────────────────────────────────────────────────────────────────────
+function tileFromEvent(e){ const r=canvas.getBoundingClientRect();
+  return {x:Math.floor((e.clientX-r.left)/T), y:Math.floor((e.clientY-r.top)/T)}; }
+canvas.addEventListener("mousedown",e=>{
+  const {x,y}=tileFromEvent(e); if(x<0||y<0||x>=COLS||y>=ROWS) return;
+  const s=soldiers[selId]; if(!s.alive) return;
+  if(e.button===2){ s.path.pop(); e.preventDefault(); return; }   // right = undo waypoint
+  // click on a soldier selects it instead of pathing
+  const hit=soldiers.find(o=>o.alive&&o.x===x&&o.y===y);
+  if(hit){ selId=hit.id; refreshRoster(); return; }
+  if(isBlocked(x,y)) return;
+  planTo(s,x,y);
+});
+canvas.addEventListener("contextmenu",e=>e.preventDefault());
+window.addEventListener("keydown",e=>{
+  if(e.code==="Space"){ e.preventDefault(); toggleExec(); }
+  else if(e.key==="1"){ selId=0; refreshRoster(); }
+  else if(e.key==="2"){ selId=1; refreshRoster(); }
+  else if(e.key.toLowerCase()==="c"){ soldiers[selId].path.length=0; }
+});
+function toggleExec(){
+  if(!executing){
+    if(soldiers.every(s=>!s.path.length||s.prog>=s.path.length))
+      log("· No new orders — soldiers hold position.","");
+    step._wasContact=false; setState("EXECUTING"); log("▶ Executing plan…","ok");
+  } else { setState("PLANNING"); log("‖ Paused.",""); }
+}
+document.getElementById("goBtn").onclick=toggleExec;
+document.getElementById("clearBtn").onclick=()=>{ soldiers[selId].path.length=0; };
+
+// ── Roster sidebar ────────────────────────────────────────────────────────────
+function refreshRoster(){
+  const el=document.getElementById("roster"); el.innerHTML="";
+  for(const s of soldiers){
+    const d=document.createElement("div");
+    d.className="unit"+(s.id===selId?" sel":"");
+    const status = !s.alive ? "DOWN" : (s.prog<s.path.length? "ORDERS SET":"HOLDING");
+    d.innerHTML=`<div class="dot" style="background:${s.alive?s.color:'#5f7183'}"></div>
+      <div><div class="nm">${s.name}</div>
+      <div class="sub mono">${s.alive?('HP '+Math.max(0,Math.round(s.hp))+' · '+status):'K.I.A.'}</div>
+      <div class="hpbar"><i style="width:${Math.max(0,s.hp)}%;background:${s.color}"></i></div></div>`;
+    d.onclick=()=>{ if(s.alive){selId=s.id; refreshRoster();} };
+    el.appendChild(d);
+  }
+}
+
+// ── Boot & main loop ──────────────────────────────────────────────────────────
+function resize(){ canvas.width=COLS*T; canvas.height=ROWS*T; }
+resize();
+let last=performance.now();
+function frame(now){ const dt=Math.min(0.05,(now-last)/1000); last=now;
+  step(dt); draw(); requestAnimationFrame(frame); }
+setState("PLANNING"); refreshRoster();
+log("Squad breached the airlock. Plan your entry.","");
+log("Two rooms ahead, one hostile patrolling the upper deck.","");
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
