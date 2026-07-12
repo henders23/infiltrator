@@ -86,12 +86,12 @@ or React frame.
 Each milestone is a playable increment. Rough sizing is relative effort (S/M/L/XL), not calendar —
 adjust to your available time. **M0–M1 is what the `slice/` prototype foreshadows.**
 
-### M0 — Scaffold & foundations  · S
+### M0 — Scaffold & foundations  · S  ✅ **done — see [`game/`](../game)**
 - Vite + TS + Pixi + React project; lint/format/test (Vitest); theme tokens from the mockup.
 - Deterministic clock, seeded RNG, fixed-timestep loop, pause. Empty deck renders; camera pan/zoom.
 - **Playable:** an empty ship deck you can pan around. Proves the render/sim boundary.
 
-### M1 — Tactical core: plan-then-execute movement  · M  ← *vertical slice target*
+### M1 — Tactical core: plan-then-execute movement  · M  ✅ **done — see [`game/`](../game)**
 - Grid deck with walls; A* pathfinding; fog of war stub.
 - Select a soldier → draw/auto path → queue → **execute** → soldier walks it → **pause** anytime.
 - Multiple soldiers, **individual** per-unit order queues, synchronized "go".
@@ -101,7 +101,7 @@ adjust to your available time. **M0–M1 is what the `slice/` prototype foreshad
 - **Playable:** move a squad room-to-room by planning and executing. *This is the core feel.*
   (`slice/index.html` is a dependency-free proof of exactly this.)
 
-### M2 — Combat: LOS, cover, shooting, death  · L
+### M2 — Combat: LOS, cover, shooting, death  · L  ← *next*
 - Directional cover, line-of-sight visibility, weapon fire, armor/HP, suppression, downs/death.
 - One simple enemy that shoots back. Auto-pause-on-contact.
 - **Playable:** a real, lethal firefight you win or lose by positioning.

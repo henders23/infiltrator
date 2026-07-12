@@ -12,17 +12,19 @@ violence to four warring powers in a collapsed star cluster.
 
 | Path | What it is |
 |---|---|
+| **`game/`** | The **playable game** (TypeScript + PixiJS + React). Implements build-plan **M0 + M1**: plan-then-execute movement with persistent orders. `cd game && npm install && npm run dev`. |
 | **`docs/DESIGN.md`** | Full game design doc — story, the **four factions**, tactical & hull-venting systems, the survivor/roster loop, strategic layer, difficulty. |
-| **`docs/BUILD_PLAN.md`** | Engineering roadmap — tech stack, architecture, **M0–M10 milestones**, testing, risks, first vertical slice. |
-| **`slice/`** | A **playable, dependency-free** proof of the plan-then-execute control model. Open `slice/index.html`. |
+| **`docs/BUILD_PLAN.md`** | Engineering roadmap — tech stack, architecture, **M0–M10 milestones**, testing, risks. |
+| **`slice/`** | A **dependency-free** proof of the plan-then-execute control model (no build step). Open `slice/index.html`. |
 | **`mockups/`** | The original design brief + UI mockups (the "1c CONSOLE" direction) that set the visual language. |
 
 ## Start here
 
-1. **Play the slice** — open `slice/index.html`, plan a squad's entry, and hit execute. This is the
-   core feel the whole game is built around.
+1. **Run the game** — `cd game && npm install && npm run dev`. Select a soldier, set a path, hit
+   Execute. Soldiers you don't re-task hold their last order (persistent orders). (No toolchain? The
+   `slice/index.html` shows the same core loop with zero setup.)
 2. **Read `docs/DESIGN.md`** — especially §3 (the four factions) and §5 (the survivor loop).
-3. **Read `docs/BUILD_PLAN.md`** — the milestone plan for turning the design into a shippable game.
+3. **Read `docs/BUILD_PLAN.md`** — the milestone plan; M0 + M1 are done (`game/`), M2 (combat) is next.
 
 ## The one-paragraph pitch
 
@@ -35,4 +37,5 @@ come to know by name. The hull itself is a loaded weapon — breach it and vacuu
 Survive the contract treadmill long enough to keep a few veterans alive, and you might still be
 standing when the Choir finally sings.
 
-*Status: design + build plan complete; playable control slice; production code not yet started.*
+*Status: design + build plan complete; playable control slice; production build at M0 + M1 (plan-then-execute
+movement with persistent orders) in `game/`. Next: M2 — combat (LOS, cover, shooting, death).*

@@ -283,9 +283,11 @@ contracts and threats appear and *expire* over time, forcing prioritization.
   **sensors** (mission intel), and **medbay/cryo** (reserve capacity).
 - **Economy:** contract pay + salvage vs upkeep (payroll, fuel, repairs, ammo). Perpetual pressure to
   keep working. Salvaged hulls/gear are a second income and a risk (fencing draws heat).
-- **The Sodality clock (escalation):** a hidden/semi-hidden doom track. The longer the campaign runs
-  and the more the human factions bleed each other, the stronger the Choir grows — culminating in an
-  endgame crisis whose difficulty reflects the sector state you created.
+- **The Sodality clock (escalation):** a **hidden** doom track — never shown as a number or a bar. The
+  longer the campaign runs and the more the human factions bleed each other, the stronger the Choir
+  grows, surfaced only through **diegetic tells** (rumors in briefings, missing patrols, ruined stations,
+  Sodality units appearing where they shouldn't) — culminating in an endgame crisis whose difficulty
+  reflects the sector state you created. The dread comes from not knowing how much time you have.
 
 ---
 
