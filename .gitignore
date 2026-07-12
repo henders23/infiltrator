@@ -1,0 +1,6 @@
+# Dependencies and build/test caches (the app lives in game/ with its own .gitignore)
+node_modules/
+dist/
+*.tsbuildinfo
+.vite/
+.DS_Store
