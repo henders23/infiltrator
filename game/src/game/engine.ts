@@ -8,9 +8,10 @@ import { Application, Container, Graphics, Text } from 'pixi.js';
 import { DOOR, WALL } from '../sim/grid';
 import { findPath } from '../sim/pathfinding';
 import { moveOrder } from '../sim/orders';
-import { Unit } from '../sim/unit';
+import { isActive, Unit } from '../sim/unit';
 import { World, REVEAL_RADIUS } from '../sim/world';
 import { Mission } from '../content/maps';
+import { weaponOf } from '../content/weapons';
 import { COLORS, FONT_MONO } from '../ui/theme';
 
 const TILE_PX = 28;
@@ -24,9 +25,14 @@ export interface UnitSnapshot {
   hp: number;
   maxHp: number;
   alive: boolean;
+  downed: boolean;
   status: string;
   needsAttention: boolean;
   visible: boolean;
+  stress: number;
+  weapon: string;
+  hullSafety: string;
+  armor: number;
 }
 
 export interface Snapshot {
@@ -55,6 +61,7 @@ export class Engine {
   private readonly fogG = new Graphics();
   private readonly planG = new Graphics();
   private readonly unitLayer = new Container();
+  private readonly fxG = new Graphics(); // tracers / muzzle flashes (above units)
   private readonly views = new Map<number, UnitView>();
 
   paused = true;
@@ -69,6 +76,7 @@ export class Engine {
   private pointerPrev = { x: 0, y: 0 };
 
   private readonly contacted = new Set<number>();
+  private readonly downSeen = new Set<number>();
   private readonly log: string[] = [];
   private drainedEvents = 0;
   private emitAcc = 0;
@@ -90,7 +98,7 @@ export class Engine {
     });
     host.appendChild(this.app.canvas);
 
-    this.stage.addChild(this.deckG, this.fogG, this.planG, this.unitLayer);
+    this.stage.addChild(this.deckG, this.fogG, this.planG, this.unitLayer, this.fxG);
     this.app.stage.addChild(this.stage);
 
     this.drawDeck();
@@ -123,6 +131,7 @@ export class Engine {
     }
     this.pumpEvents();
     this.checkContacts();
+    this.checkCasualties();
     this.drawFrame();
     this.emitAcc += clamped;
     if (this.emitAcc >= EMIT_INTERVAL) {
@@ -138,7 +147,7 @@ export class Engine {
     if (this.log.length > 60) this.log.splice(0, this.log.length - 60);
   }
 
-  /** M1 flavour of "plan meets reality": auto-pause the first time a hostile is seen. */
+  /** "Plan meets reality": auto-pause the first time a hostile is seen. */
   private checkContacts(): void {
     for (const u of this.world.units) {
       if (u.faction !== 'hostile' || !u.alive) continue;
@@ -146,11 +155,25 @@ export class Engine {
       if (this.isVisible(u)) {
         this.contacted.add(u.id);
         this.log.push('● CONTACT — hostile spotted.');
-        if (!this.paused) {
-          this.pause();
-          this.log.push('‖ Auto-paused on contact.');
-        }
+        this.autoPause('‖ Auto-paused on contact.');
       }
+    }
+  }
+
+  /** Auto-pause the moment one of your own goes down — a casualty needs a decision. */
+  private checkCasualties(): void {
+    for (const u of this.world.units) {
+      if (u.faction !== 'friendly' || !u.downed) continue;
+      if (this.downSeen.has(u.id)) continue;
+      this.downSeen.add(u.id);
+      this.autoPause('‖ Auto-paused — casualty.');
+    }
+  }
+
+  private autoPause(msg: string): void {
+    if (!this.paused) {
+      this.pause();
+      this.log.push(msg);
     }
   }
 
@@ -271,6 +294,12 @@ export class Engine {
       this.emit();
     }
   }
+  /** Select a unit and give it a move order in one call (used by UI shortcuts/tests). */
+  orderMoveTo(id: number, tx: number, ty: number, append = false): void {
+    if (this.world.unit(id)?.faction !== 'friendly') return;
+    this.selectedId = id;
+    this.issueMove(tx, ty, append);
+  }
   clearSelectedOrder(): void {
     const u = this.selected();
     if (u) {
@@ -371,6 +400,23 @@ export class Engine {
     this.drawFog();
     this.drawPlan();
     this.drawUnits();
+    this.drawFx();
+  }
+
+  /** Tracers + muzzle flashes for shots fired in the last handful of frames. */
+  private drawFx(): void {
+    const g = this.fxG;
+    g.clear();
+    for (const s of this.world.shots) {
+      const fromVisible = s.faction === 'friendly' || this.tileVisibleNow(Math.floor(s.from.x), Math.floor(s.from.y));
+      if (!fromVisible) continue;
+      const color = s.faction === 'friendly' ? COLORS.cyan : COLORS.red;
+      g.moveTo(s.from.x * TILE_PX, s.from.y * TILE_PX)
+        .lineTo(s.to.x * TILE_PX, s.to.y * TILE_PX)
+        .stroke({ width: s.hit ? 2 : 1, color, alpha: s.hit ? 0.85 : 0.35 });
+      g.circle(s.from.x * TILE_PX, s.from.y * TILE_PX, 3).fill({ color, alpha: 0.9 });
+      if (s.hit) g.circle(s.to.x * TILE_PX, s.to.y * TILE_PX, 4).stroke({ width: 1.5, color: COLORS.orange });
+    }
   }
 
   private drawFog(): void {
@@ -432,17 +478,36 @@ export class Engine {
     for (const u of this.world.units) {
       const view = this.views.get(u.id)!;
       const visible = u.faction === 'friendly' || this.isVisible(u);
-      view.root.visible = visible && u.alive;
+      // keep dead hostiles hidden; show downed friendlies as casualties
+      view.root.visible = visible && (u.alive || (u.downed && u.faction === 'friendly'));
       if (!view.root.visible) continue;
       view.root.position.set(u.pos.x * TILE_PX, u.pos.y * TILE_PX);
       const color = u.faction === 'friendly' ? COLORS.cyan : COLORS.red;
 
       view.ring.clear();
+      view.body.clear();
+      view.label.text = '';
+
+      // downed friendly → a muted casualty marker, no combat chrome
+      if (u.downed) {
+        const r = TILE_PX * 0.26;
+        view.body
+          .moveTo(-r, -r)
+          .lineTo(r, r)
+          .moveTo(r, -r)
+          .lineTo(-r, r)
+          .stroke({ width: 2.5, color: COLORS.muted });
+        view.body.circle(0, 0, TILE_PX * 0.34).stroke({ width: 1, color: COLORS.red, alpha: 0.6 });
+        continue;
+      }
+
       if (u.id === this.selectedId) view.ring.circle(0, 0, TILE_PX * 0.46).stroke({ width: 2, color });
       if (u.attention === 'path-complete' && u.faction === 'friendly')
         view.ring.circle(0, 0, TILE_PX * 0.52).stroke({ width: 1, color: COLORS.orange, alpha: 0.7 });
+      // suppressed / pinned halo
+      if (u.suppressedUntil > this.world.time)
+        view.ring.circle(0, 0, TILE_PX * 0.4).stroke({ width: 3, color: COLORS.orange, alpha: 0.5 });
 
-      view.body.clear();
       view.body.circle(0, 0, TILE_PX * 0.3).fill(color);
       // facing tick
       view.body
@@ -453,10 +518,16 @@ export class Engine {
       const w = TILE_PX * 0.7;
       view.body.rect(-w / 2, TILE_PX * 0.4, w, 3).fill(COLORS.wall);
       view.body.rect(-w / 2, TILE_PX * 0.4, (w * Math.max(0, u.hp)) / u.maxHp, 3).fill(color);
+      // stress pip (orange) under the hp pip, only when it matters
+      if (u.stress > 1) {
+        view.body.rect(-w / 2, TILE_PX * 0.4 + 4, (w * Math.min(100, u.stress)) / 100, 2).fill(COLORS.orange);
+      }
 
       if (u.faction === 'friendly') {
         const n = this.world.units.filter((x) => x.faction === 'friendly').indexOf(u) + 1;
         view.label.text = String(n);
+      } else {
+        view.label.text = 'E';
       }
     }
   }
@@ -471,8 +542,13 @@ export class Engine {
       hp: Math.round(u.hp),
       maxHp: u.maxHp,
       alive: u.alive,
+      downed: u.downed,
       needsAttention: u.attention != null,
       visible: u.faction === 'friendly' || this.isVisible(u),
+      stress: Math.round(u.stress),
+      weapon: weaponOf(u.weapon).name,
+      hullSafety: weaponOf(u.weapon).hullSafety,
+      armor: u.armor,
       status: this.statusOf(u),
     }));
     this.onSnapshot({
@@ -487,7 +563,10 @@ export class Engine {
 
   private statusOf(u: Unit): string {
     if (!u.alive) return 'K.I.A.';
+    if (u.downed) return 'DOWN — BLEEDING';
     if (u.faction === 'hostile') return this.isVisible(u) ? 'CONTACT' : 'UNKNOWN';
+    if (u.suppressedUntil > this.world.time) return 'PINNED';
+    if (u.targetId != null && isActive(this.world.unit(u.targetId) ?? u)) return 'FIRING';
     if (u.order.kind === 'move' && u.order.index < u.order.path.length)
       return this.paused ? 'ORDERS SET' : 'MOVING';
     if (u.attention === 'path-complete') return 'IN POSITION';

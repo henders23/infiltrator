@@ -19,6 +19,8 @@ export function App() {
     e.init(hostRef.current).then(() => {
       if (disposed) e.destroy();
     });
+    // debugging aid: expose the running engine (harmless; used by e2e checks)
+    (window as unknown as { __engine?: Engine }).__engine = e;
     setEngine(e);
     return () => {
       disposed = true;
@@ -49,7 +51,9 @@ export function App() {
   }, [engine]);
 
   const friendlies = snapshot?.units.filter((u) => u.faction === 'friendly') ?? [];
-  const contacts = snapshot?.units.filter((u) => u.faction === 'hostile' && u.visible) ?? [];
+  const contacts = snapshot?.units.filter((u) => u.faction === 'hostile' && u.visible && u.alive) ?? [];
+  const selected = snapshot?.units.find((u) => u.id === snapshot?.selectedId);
+  const losses = friendlies.filter((u) => !u.alive).length;
   const mm = Math.floor((snapshot?.time ?? 0) / 60);
   const ss = Math.floor((snapshot?.time ?? 0) % 60);
   const clock = `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
@@ -85,32 +89,53 @@ export function App() {
       <aside style={styles.side}>
         <div style={styles.sideHead}>
           <div style={styles.sideTitle}>FIRETEAM</div>
-          <div style={styles.sideSub}>{friendlies.length} DEPLOYED · {contacts.length} CONTACT</div>
+          <div style={styles.sideSub}>
+            {friendlies.length - losses} EFFECTIVE · {contacts.length} CONTACT
+            {losses > 0 && <span style={{ color: CSS.red }}> · {losses} K.I.A.</span>}
+          </div>
         </div>
+
+        {selected && (
+          <div style={styles.selPanel}>
+            <div style={styles.selName}>{selected.name}</div>
+            <div style={styles.selRow}>
+              <span>{selected.weapon}</span>
+              <span style={{ color: hullColor(selected.hullSafety), fontWeight: 700 }}>
+                {hullLabel(selected.hullSafety)}
+              </span>
+            </div>
+            <div style={styles.selRow}>
+              <span style={{ color: CSS.muted }}>ARMOR {selected.armor}</span>
+              <span style={{ color: selected.stress > 60 ? CSS.orange : CSS.muted }}>
+                STRESS {selected.stress}
+              </span>
+            </div>
+          </div>
+        )}
 
         <div style={styles.roster}>
           {friendlies.map((u, i) => {
             const sel = u.id === snapshot?.selectedId;
+            const dead = !u.alive;
+            const hurt = dead || u.downed;
+            const barColor = dead ? CSS.muted : u.downed ? CSS.red : CSS.cyan;
             return (
               <div
                 key={u.id}
-                className={'unit' + (sel ? ' sel' : '')}
+                className={'unit' + (sel ? ' sel' : '') + (dead ? ' dead' : '')}
                 onClick={() => engine?.selectUnit(u.id)}
               >
-                <div
-                  className="dot"
-                  style={{ background: u.alive ? CSS.cyan : CSS.muted }}
-                />
+                <div className="dot" style={{ background: hurt ? CSS.red : CSS.cyan }} />
                 <div style={{ flex: 1 }}>
                   <div className="nm">
                     <span style={{ color: CSS.muted }}>{i + 1}</span> {u.name}
-                    {u.needsAttention && <span className="attn"> ●</span>}
+                    {u.needsAttention && !dead && <span className="attn"> ●</span>}
                   </div>
-                  <div className="sub">
-                    {u.alive ? `HP ${u.hp} · ${u.status}` : 'K.I.A.'}
+                  <div className="sub" style={u.downed ? { color: CSS.red } : undefined}>
+                    {dead ? 'K.I.A.' : `HP ${u.hp} · ${u.status}`}
                   </div>
                   <div className="hpbar">
-                    <i style={{ width: `${Math.max(0, (u.hp / u.maxHp) * 100)}%` }} />
+                    <i style={{ width: `${Math.max(0, (u.hp / u.maxHp) * 100)}%`, background: barColor }} />
                   </div>
                 </div>
               </div>
@@ -146,9 +171,17 @@ export function App() {
 }
 
 function logClass(line: string): string {
-  if (line.startsWith('●') || line.startsWith('‖')) return 'log warn';
-  if (line.startsWith('▶')) return 'log ok';
+  if (/DOWN|K\.I\.A\.|bled out/.test(line)) return 'log hit';
+  if (line.startsWith('●') || line.startsWith('‖') || /opens fire/.test(line)) return 'log warn';
+  if (line.startsWith('▶') || /Hostile down/.test(line)) return 'log ok';
   return 'log';
+}
+
+function hullLabel(s: string): string {
+  return s === 'breaching' ? 'HULL-BREACHING' : s === 'risk' ? 'HULL-RISK' : 'HULL-SAFE';
+}
+function hullColor(s: string): string {
+  return s === 'breaching' ? CSS.red : s === 'risk' ? CSS.orange : CSS.cyan;
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -164,6 +197,9 @@ const styles: Record<string, React.CSSProperties> = {
   sideHead: { padding: '12px 14px', borderBottom: `1px solid ${CSS.line}` },
   sideTitle: { color: CSS.cyan, letterSpacing: 3, fontWeight: 700, fontSize: 13 },
   sideSub: { color: CSS.muted, fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 1, marginTop: 3 },
+  selPanel: { padding: '10px 14px', borderBottom: `1px solid ${CSS.line}`, background: '#0a121b' },
+  selName: { color: CSS.ink, fontWeight: 700, letterSpacing: 1, fontSize: 13, marginBottom: 5 },
+  selRow: { display: 'flex', justifyContent: 'space-between', fontFamily: FONT_MONO, fontSize: 11, marginTop: 2, color: CSS.ink },
   roster: { flex: 1, overflow: 'auto' },
   cmd: { padding: '10px 14px', borderTop: `1px solid ${CSS.line}` },
   help: { padding: '10px 14px', fontSize: 11, color: CSS.muted, lineHeight: 1.8, borderTop: `1px solid ${CSS.line}` },
@@ -184,6 +220,7 @@ const globalCss = `
     border-bottom: 1px solid ${CSS.line}; cursor: pointer; }
   .unit:hover { background: #0f1826; }
   .unit.sel { background: #0f1c28; box-shadow: inset 3px 0 0 ${CSS.cyan}; }
+  .unit.dead { opacity: 0.5; }
   .unit .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
   .unit .nm { font-weight: 600; letter-spacing: 1px; font-size: 14px; }
   .unit .attn { color: ${CSS.orange}; }

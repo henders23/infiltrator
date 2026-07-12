@@ -1,6 +1,6 @@
 // Authored mission content. Content is data, separate from sim systems (BUILD_PLAN
 // §1) — this demo deck is a two-room boarding scenario: entry corridor on the left,
-// two rooms behind breaching doors on the right, hostiles inside.
+// two rooms behind breaching doors on the right, defenders holding inside with cover.
 
 import { DOOR, Grid, WALL } from '../sim/grid';
 import { makeUnit, Unit } from '../sim/unit';
@@ -36,16 +36,62 @@ export function makeDemoMission(): Mission {
   wallRect(13, 9, W - 2, 9);
   g.set(22, 9, DOOR); // internal connecting door
 
+  // cover chunks inside the rooms so defenders have something to hug
+  wallRect(24, 4, 25, 4); // upper-room crate line
+  wallRect(28, 12, 28, 14); // lower-room console block
+
   const units: Unit[] = [
     // fireteam — spawns in the entry corridor, planned individually
-    makeUnit({ name: 'CPL. VOSS', faction: 'friendly', pos: { x: 2.5, y: 3.5 }, hp: 100 }),
-    makeUnit({ name: 'PVT. OKORO', faction: 'friendly', pos: { x: 3.5, y: 5.5 }, hp: 100 }),
-    makeUnit({ name: 'PVT. REYES', faction: 'friendly', pos: { x: 2.5, y: 8.5 }, hp: 100 }),
-    makeUnit({ name: 'SPC. DANN', faction: 'friendly', pos: { x: 3.5, y: 10.5 }, hp: 100 }),
-    // hostiles hold position (no combat AI until M2) — used here to test fog reveal
-    makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 26.5, y: 4.5 }, hp: 100 }),
-    makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 29.5, y: 6.5 }, hp: 100 }),
-    makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 25.5, y: 15.5 }, hp: 100 }),
+    makeUnit({
+      name: 'CPL. VOSS',
+      faction: 'friendly',
+      pos: { x: 2.5, y: 3.5 },
+      weapon: 'carbine',
+      armor: 14,
+    }),
+    makeUnit({
+      name: 'PVT. OKORO',
+      faction: 'friendly',
+      pos: { x: 3.5, y: 5.5 },
+      weapon: 'shotgun',
+      armor: 12,
+    }),
+    makeUnit({
+      name: 'PVT. REYES',
+      faction: 'friendly',
+      pos: { x: 2.5, y: 8.5 },
+      weapon: 'carbine',
+      armor: 12,
+    }),
+    makeUnit({
+      name: 'SPC. DANN',
+      faction: 'friendly',
+      pos: { x: 3.5, y: 10.5 },
+      weapon: 'saw', // hull-breaching — big damage, will crack a hull in M4
+      armor: 16,
+    }),
+    // defenders hold in the rooms with lighter armour; AI wakes on contact
+    makeUnit({
+      name: 'HOSTILE',
+      faction: 'hostile',
+      pos: { x: 26.5, y: 4.5 },
+      weapon: 'carbine',
+      armor: 6,
+    }),
+    makeUnit({
+      name: 'HOSTILE',
+      faction: 'hostile',
+      pos: { x: 29.5, y: 6.5 },
+      weapon: 'pistol',
+      armor: 4,
+    }),
+    makeUnit({
+      name: 'HOSTILE',
+      faction: 'hostile',
+      pos: { x: 27.5, y: 13.5 },
+      weapon: 'carbine',
+      armor: 6,
+    }),
   ];
 
   return { name: 'DERELICT — TWO-ROOM BOARDING', grid: g, units, seed: 20260712 };

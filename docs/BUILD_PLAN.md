@@ -101,12 +101,12 @@ adjust to your available time. **M0–M1 is what the `slice/` prototype foreshad
 - **Playable:** move a squad room-to-room by planning and executing. *This is the core feel.*
   (`slice/index.html` is a dependency-free proof of exactly this.)
 
-### M2 — Combat: LOS, cover, shooting, death  · L  ← *next*
+### M2 — Combat: LOS, cover, shooting, death  · L  ✅ **done — see [`game/`](../game)**
 - Directional cover, line-of-sight visibility, weapon fire, armor/HP, suppression, downs/death.
 - One simple enemy that shoots back. Auto-pause-on-contact.
 - **Playable:** a real, lethal firefight you win or lose by positioning.
 
-### M3 — Orders depth & entries  · L
+### M3 — Orders depth & entries  · L  ← *next*
 - Action waypoints: **breach door**, frag/flash-through, stack-up, **overwatch** (facing cones),
   use item, drag downed ally. Quiet vs loud entry; stances.
 - **Standing orders** a unit holds until re-tasked (overwatch arc, guard point, hold fire/weapons
