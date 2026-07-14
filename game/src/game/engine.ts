@@ -6,7 +6,8 @@
 
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text, Texture } from 'pixi.js';
 import soldiersUrl from '../assets/soldiers.png';
-import { DOOR, WALL } from '../sim/grid';
+import deckUrl from '../assets/ship-deck.jpg';
+import { DOOR, SPACE, WALL } from '../sim/grid';
 import { findPath } from '../sim/pathfinding';
 import {
   BREACH_TIME,
@@ -86,6 +87,7 @@ export class Engine {
   private readonly mission: Mission;
 
   private readonly stage = new Container(); // pannable/zoomable world
+  private readonly deckSprite = new Sprite(); // ship-plan art, drawn under everything
   private readonly deckG = new Graphics();
   private readonly doorsG = new Graphics(); // door state (redrawn each frame)
   private readonly hullG = new Graphics(); // pressure tint + breaches (redrawn each frame)
@@ -124,7 +126,7 @@ export class Engine {
 
   async init(host: HTMLElement): Promise<void> {
     await this.app.init({
-      background: COLORS.navy,
+      background: 0x05070d, // near-black, blends with the star field around the ship art
       antialias: true,
       resizeTo: host,
       autoDensity: true,
@@ -132,7 +134,7 @@ export class Engine {
     });
     host.appendChild(this.app.canvas);
 
-    this.stage.addChild(this.deckG, this.doorsG, this.hullG, this.fogG, this.planG, this.unitLayer, this.fxG);
+    this.stage.addChild(this.deckSprite, this.deckG, this.doorsG, this.hullG, this.fogG, this.planG, this.unitLayer, this.fxG);
     this.app.stage.addChild(this.stage);
 
     try {
@@ -140,14 +142,24 @@ export class Engine {
     } catch {
       this.soldierSheet = null; // fall back to marker rendering if the sheet fails to load
     }
+    try {
+      // the deck-plan art the grid was traced from — stretch it to cover the grid
+      // exactly, so one tile of sim space is one tile of the painted ship
+      const deckTex: Texture = await Assets.load(deckUrl);
+      this.deckSprite.texture = deckTex;
+      this.deckSprite.width = this.mission.grid.width * TILE_PX;
+      this.deckSprite.height = this.mission.grid.height * TILE_PX;
+    } catch {
+      this.deckSprite.visible = false; // fall back to flat tile rendering
+    }
 
     this.drawDeck();
     this.buildUnitViews();
     this.fitCamera();
     this.attachInput();
 
-    this.log.push('Squad breached the airlock. Plan your entry.');
-    this.log.push('Two rooms ahead. Select a soldier and set a path.');
+    this.log.push('Squad breached the aft airlock. Plan your entry.');
+    this.log.push('Hostiles hold the deck. Select a soldier and set a path.');
 
     this.app.ticker.add((t) => this.tick(t.deltaMS / 1000));
     this.emit();
@@ -547,12 +559,15 @@ export class Engine {
   }
 
   // ── static deck render (drawn once) ─────────────────────────────────────────
+  /** The ship art already paints floors and walls; tiles are only drawn as a fallback. */
   private drawDeck(): void {
+    if (this.deckSprite.visible && this.deckSprite.texture) return;
     const g = this.deckG;
     const grid = this.mission.grid;
     for (let y = 0; y < grid.height; y++) {
       for (let x = 0; x < grid.width; x++) {
         const k = grid.get(x, y);
+        if (k === SPACE) continue; // vacuum — leave the void black
         const px = x * TILE_PX;
         const py = y * TILE_PX;
         if (k === WALL) {
@@ -578,8 +593,10 @@ export class Engine {
         const px = x * TILE_PX;
         const py = y * TILE_PX;
         if (this.world.isDoorClosed(x, y)) {
-          g.rect(px + 3, py + 3, TILE_PX - 6, TILE_PX - 6).fill({ color: COLORS.door, alpha: 0.85 });
-          g.rect(px + 3, py + 3, TILE_PX - 6, TILE_PX - 6).stroke({ width: 1, color: COLORS.navy });
+          // muted steel leaf with an amber frame + status light, so it sits with the ship art
+          g.rect(px + 3, py + 3, TILE_PX - 6, TILE_PX - 6).fill({ color: 0x232a33, alpha: 0.9 });
+          g.rect(px + 3, py + 3, TILE_PX - 6, TILE_PX - 6).stroke({ width: 1.5, color: COLORS.door, alpha: 0.9 });
+          g.circle(px + TILE_PX / 2, py + TILE_PX / 2, 1.8).fill({ color: COLORS.door });
         } else {
           // open: just the frame, recessed
           g.rect(px + 4, py + 4, TILE_PX - 8, TILE_PX - 8).stroke({ width: 1.5, color: COLORS.door, alpha: 0.5 });
@@ -621,7 +638,8 @@ export class Engine {
       const tex = this.cellTexture(cell);
       if (tex) {
         sprite.texture = tex;
-        const scale = (TILE_PX * 1.7) / tex.frame.height;
+        // human-scale against the ship art: a trooper spans just over a tile
+        const scale = (TILE_PX * 1.2) / tex.frame.height;
         sprite.scale.set(scale);
       } else {
         sprite.visible = false;
@@ -656,7 +674,7 @@ export class Engine {
     const grid = this.mission.grid;
     for (let y = 0; y < grid.height; y++) {
       for (let x = 0; x < grid.width; x++) {
-        if (grid.isWall(x, y)) continue;
+        if (grid.isWall(x, y) || grid.isSpace(x, y)) continue;
         const p = this.world.pressureAt(x, y);
         if (p > 0.97) continue;
         // low pressure → blue vacuum tint; deeper as pressure drops
@@ -738,6 +756,7 @@ export class Engine {
     const grid = this.mission.grid;
     for (let y = 0; y < grid.height; y++) {
       for (let x = 0; x < grid.width; x++) {
+        if (grid.get(x, y) === SPACE) continue; // the void outside the hull is never fogged
         const idx = grid.idx(x, y);
         if (!this.world.seen.has(idx)) {
           g.rect(x * TILE_PX, y * TILE_PX, TILE_PX, TILE_PX).fill({ color: COLORS.fogUnseen, alpha: 1 });
@@ -868,11 +887,26 @@ export class Engine {
         continue;
       }
 
-      // the trooper sprite: point it along its facing (sheet art aims "up"), tint foes red
+      // the trooper sprite: the BODY points along its travel facing (sheet art aims
+      // "up"), tint foes red. The weapon may be tracking a different direction — that's
+      // drawn as an aim line below, so a soldier can run one way while firing another.
       if (view.sprite.texture) {
         view.sprite.visible = true;
         view.sprite.rotation = Math.atan2(u.facing.y, u.facing.x) + Math.PI / 2;
         view.sprite.tint = u.faction === 'friendly' ? 0xffffff : 0xff7a5c;
+      }
+
+      // weapon aim line whenever the gun is off the body axis or actively on a target
+      const step = currentStep(u.order);
+      const aiming = u.targetId != null || step.kind === 'overwatch';
+      if (aiming) {
+        const ax = u.aim.x;
+        const ay = u.aim.y;
+        view.body
+          .moveTo(ax * TILE_PX * 0.22, ay * TILE_PX * 0.22)
+          .lineTo(ax * TILE_PX * 0.62, ay * TILE_PX * 0.62)
+          .stroke({ width: 2, color, alpha: 0.9 });
+        view.body.circle(ax * TILE_PX * 0.62, ay * TILE_PX * 0.62, 1.6).fill({ color, alpha: 0.9 });
       }
 
       // a soft footprint disc under each trooper so friend/foe reads at a glance

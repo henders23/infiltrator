@@ -109,6 +109,38 @@ describe('world combat', () => {
     expect(pinnedAtLeastOnce).toBe(true);
   });
 
+  it('a moving soldier keeps facing its travel direction while aiming at a flanking target', () => {
+    const grid = openDeck();
+    // F runs east along y=6 while H sits due north — fire and movement are decoupled
+    const f = makeUnit({ name: 'F', faction: 'friendly', pos: { x: 2.5, y: 6.5 }, weapon: 'carbine' });
+    const h = makeUnit({ name: 'H', faction: 'hostile', pos: { x: 6.5, y: 1.5 }, weapon: 'pistol', hp: 500, maxHp: 500, armor: 40 });
+    const w = new World(grid, [f, h], 9);
+    f.order = moveOrder(findPath(grid, 2, 6, 14, 6)!);
+    let firedWhileMoving = false;
+    for (let i = 0; i < 60 * 3; i++) {
+      const shotsBefore = w.shots.filter((s) => s.faction === 'friendly').length;
+      w.step(1 / 60);
+      const fired = w.shots.filter((s) => s.faction === 'friendly').length > shotsBefore;
+      const moving = f.order.steps[0].kind === 'move' && f.suppressedUntil <= w.time;
+      if (fired && moving) {
+        firedWhileMoving = true;
+        expect(f.facing.x).toBeGreaterThan(0.9); // body still pointed down the corridor
+        expect(f.aim.y).toBeLessThan(-0.5); // weapon swung up toward the hostile
+      }
+    }
+    expect(firedWhileMoving).toBe(true);
+  });
+
+  it('a stationary soldier turns body and weapon together onto its target', () => {
+    const grid = openDeck();
+    const f = makeUnit({ name: 'F', faction: 'friendly', pos: { x: 2.5, y: 6.5 }, facing: { x: 1, y: 0 } });
+    const h = makeUnit({ name: 'H', faction: 'hostile', pos: { x: 2.5, y: 1.5 }, weapon: 'pistol' });
+    const w = new World(grid, [f, h], 5);
+    w.step(1 / 60);
+    expect(f.facing.y).toBeLessThan(-0.9); // turned to face the target…
+    expect(f.aim.y).toBeLessThan(-0.9); // …and the weapon with it
+  });
+
   it('a downed friendly bleeds out to K.I.A. if left', () => {
     const grid = openDeck();
     const f = makeUnit({ name: 'F', faction: 'friendly', pos: { x: 2.5, y: 2.5 }, hp: 1, armor: 0 });

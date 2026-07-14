@@ -92,6 +92,10 @@ export class World {
     this.units = units;
     this.rng = makeRng(seed);
     this.pressure = new Float32Array(grid.width * grid.height).fill(1);
+    // open space holds no air — it's a permanent vacuum sink for diffusion
+    for (let y = 0; y < grid.height; y++)
+      for (let x = 0; x < grid.width; x++)
+        if (grid.isSpace(x, y)) this.pressure[grid.idx(x, y)] = 0;
     this.pressureScratch = new Float32Array(grid.width * grid.height);
     this.revealFog();
   }
@@ -111,7 +115,8 @@ export class World {
   isHullWall(x: number, y: number): boolean {
     if (!this.grid.isWall(x, y)) return false;
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-      if (!this.grid.inBounds(x + dx, y + dy)) return true; // touches the outside
+      // touches the outside: past the map edge, or an authored open-space tile
+      if (!this.grid.inBounds(x + dx, y + dy) || this.grid.isSpace(x + dx, y + dy)) return true;
     }
     return false;
   }
@@ -171,8 +176,11 @@ export class World {
         }
         break;
       case 'overwatch':
+        // braced and stationary — body and weapon both hold the watch direction
         u.facing.x = s.dir.x;
         u.facing.y = s.dir.y;
+        u.aim.x = s.dir.x;
+        u.aim.y = s.dir.y;
         break;
       case 'hold':
         break;
@@ -355,9 +363,14 @@ export class World {
     return best;
   }
 
-  /** A tile air can flow into: in-bounds, not a wall, not a closed door. */
+  /** A tile air can flow into: in-bounds, not a wall, not a closed door, not open space. */
   private ventPassable(x: number, y: number): boolean {
-    return this.grid.inBounds(x, y) && !this.grid.isWall(x, y) && !this.isDoorClosed(x, y);
+    return (
+      this.grid.inBounds(x, y) &&
+      !this.grid.isWall(x, y) &&
+      !this.grid.isSpace(x, y) &&
+      !this.isDoorClosed(x, y)
+    );
   }
 
   /** One double-buffered diffusion pass over the pressure field. */
@@ -368,7 +381,7 @@ export class World {
     N.set(P);
     for (let y = 0; y < this.grid.height; y++) {
       for (let x = 0; x < w; x++) {
-        if (this.grid.isWall(x, y) || this.isDoorClosed(x, y)) continue;
+        if (this.grid.isWall(x, y) || this.grid.isSpace(x, y) || this.isDoorClosed(x, y)) continue;
         const idx = y * w + x;
         const p = P[idx];
         let flux = 0;
@@ -377,7 +390,8 @@ export class World {
           const ny = y + dy;
           if (!this.grid.inBounds(nx, ny)) continue;
           const ni = ny * w + nx;
-          if (this.breaches.has(ni)) flux += 0 - p; // open to space
+          // breaches and open space are 0-sinks; other open tiles exchange normally
+          if (this.breaches.has(ni) || this.grid.isSpace(nx, ny)) flux += 0 - p;
           else if (!this.grid.isWall(nx, ny) && !this.isDoorClosed(nx, ny)) flux += P[ni] - p;
         }
         N[idx] = Math.max(0, Math.min(1, p + coeff * flux));
@@ -469,12 +483,24 @@ export class World {
 
       const step = currentStep(u.order);
       const onOverwatch = step.kind === 'overwatch';
+      const moving = step.kind === 'move' && step.index < step.path.length;
       const mayFire = u.faction === 'hostile' ? u.combat === 'engage' : u.weaponsFree || onOverwatch;
-      if (!mayFire) continue;
+      if (!mayFire) {
+        if (!onOverwatch) this.relaxAim(u);
+        continue;
+      }
 
       const arc = onOverwatch ? (step as Extract<Step, { kind: 'overwatch' }>).dir : null;
       const target = this.nearestVisibleEnemy(u, arc);
       u.targetId = target ? target.id : null;
+      if (target) {
+        // weapon tracks the target; the body only turns if we're not mid-stride,
+        // so a moving soldier keeps facing its travel direction while firing sideways
+        this.aimToward(u, target.pos.x, target.pos.y);
+        if (!moving && !onOverwatch) this.faceToward(u, target.pos.x, target.pos.y);
+      } else if (!onOverwatch) {
+        this.relaxAim(u);
+      }
       if (target && u.fireCooldown <= 0) {
         this.resolveShot(u, target);
         u.fireCooldown = weaponOf(u.weapon).fireInterval;
@@ -492,7 +518,7 @@ export class World {
       Math.floor(shooter.pos.x),
       Math.floor(shooter.pos.y),
     );
-    this.faceToward(shooter, target.pos.x, target.pos.y);
+    this.aimToward(shooter, target.pos.x, target.pos.y);
 
     const chance = hitChance(w, dist, cover, shooter.suppressedUntil > this.time);
     const hit = this.rng() < chance;
@@ -591,12 +617,30 @@ export class World {
     return best;
   }
 
+  /** Turn the body (and the weapon with it) — used for stationary actions. */
   private faceToward(u: Unit, x: number, y: number): void {
     const dx = x - u.pos.x;
     const dy = y - u.pos.y;
     const d = Math.hypot(dx, dy) || 1;
     u.facing.x = dx / d;
     u.facing.y = dy / d;
+    u.aim.x = u.facing.x;
+    u.aim.y = u.facing.y;
+  }
+
+  /** Swing only the weapon — the body keeps its travel facing. */
+  private aimToward(u: Unit, x: number, y: number): void {
+    const dx = x - u.pos.x;
+    const dy = y - u.pos.y;
+    const d = Math.hypot(dx, dy) || 1;
+    u.aim.x = dx / d;
+    u.aim.y = dy / d;
+  }
+
+  /** No target: the weapon settles back in line with the body. */
+  private relaxAim(u: Unit): void {
+    u.aim.x = u.facing.x;
+    u.aim.y = u.facing.y;
   }
 
   private revealFog(): void {

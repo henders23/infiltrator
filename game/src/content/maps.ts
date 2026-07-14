@@ -1,8 +1,10 @@
 // Authored mission content. Content is data, separate from sim systems (BUILD_PLAN
-// §1) — this demo deck is a two-room boarding scenario: entry corridor on the left,
-// two rooms behind breaching doors on the right, defenders holding inside with cover.
+// §1). This deck is traced tile-for-tile from the ship-plan art the renderer draws
+// underneath it (src/assets/ship-deck.jpg): engines aft (left), crew rooms along the
+// top, cargo/quarters along the bottom, three core rooms amidships, bridge at the bow.
+// ' ' is open space outside the hull — venting a hull wall opens the room to vacuum.
 
-import { DOOR, Grid, WALL } from '../sim/grid';
+import { Grid, gridFromAscii } from '../sim/grid';
 import { makeUnit, Unit } from '../sim/unit';
 
 export interface Mission {
@@ -12,89 +14,93 @@ export interface Mission {
   seed: number;
 }
 
+/** 60×33 deck plan, aligned 1:1 with the ship art (one tile ≈ 28 image px). */
+function shipDeck(): Grid {
+  return gridFromAscii([
+    '                                                            ',
+    '                                                            ',
+    '                                                            ',
+    '         ####################################               ',
+    '        ###..##.###.##.#......#....#..#.....####            ',
+    '        ###.....#......#......##...#..#.....######          ',
+    '        #.......#......#...##.##...#..#.....########        ',
+    '        #.......#......#...##.#....#..+.....#########       ',
+    '        #.......#......#......#....#..#.....##########      ',
+    '        #.......#......#......#....#..#.....#........#      ',
+    '        ######++###++#######++###++#####++###.........#     ',
+    '        #....#................................+........#    ',
+    '        ###..#................................+.........#   ',
+    '        ###..#...######.########...#######+##........#..#   ',
+    '        #....#...#.####.#......#...#.....#.##.........#..#  ',
+    '        #....+...+....#.+.####.+...+.##....#+.......#..#.#  ',
+    '        ###..+...+....#.+.####.+...+.......#+.......#..#.#  ',
+    '        ###..#...#.#..#.#......#...#.......##.........#..#  ',
+    '        ###..#...######.########...##########........#..#   ',
+    '        #....#................................+.........#   ',
+    '        #....#................................+........#    ',
+    '        ######++###++#######++###++######++##.........#     ',
+    '        #.......#......#......#.....#..#....#........#      ',
+    '        #.......###....#......#.##..#..#....##########      ',
+    '        #...##..#.#....#.##...#..#..+..#....########        ',
+    '        #...##..##.....#......#..#..#..+....#######         ',
+    '        #.......#......#......#.....#..#....#####           ',
+    '        #################################### ##             ',
+    '         ###################################                ',
+    '                                                            ',
+    '                                                            ',
+    '                                                            ',
+    '                                                            ',
+  ]);
+}
+
 export function makeDemoMission(): Mission {
-  const W = 34;
-  const H = 20;
-  const g = new Grid(W, H); // defaults to all FLOOR
-
-  const wallRect = (x0: number, y0: number, x1: number, y1: number) => {
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) g.set(x, y, WALL);
-  };
-
-  // hull border
-  wallRect(0, 0, W - 1, 0);
-  wallRect(0, H - 1, W - 1, H - 1);
-  wallRect(0, 0, 0, H - 1);
-  wallRect(W - 1, 0, W - 1, H - 1);
-
-  // spine bulkhead dividing entry (left) from the two rooms (right), two doors
-  wallRect(12, 1, 12, H - 2);
-  g.set(12, 6, DOOR); // door to upper room approach
-  g.set(12, 13, DOOR); // door to lower room approach
-
-  // horizontal divider splitting the right side into an upper and a lower room
-  wallRect(13, 9, W - 2, 9);
-  g.set(22, 9, DOOR); // internal connecting door
-
-  // cover chunks inside the rooms so defenders have something to hug
-  wallRect(24, 4, 25, 4); // upper-room crate line
-  wallRect(28, 12, 28, 14); // lower-room console block
+  const g = shipDeck();
 
   const units: Unit[] = [
-    // fireteam — spawns in the entry corridor, planned individually
+    // fireteam — boards through the aft airlock into the port corridor junction
     makeUnit({
       name: 'CPL. VOSS',
       faction: 'friendly',
-      pos: { x: 2.5, y: 3.5 },
+      pos: { x: 14.5, y: 11.5 },
+      facing: { x: 1, y: 0 },
       weapon: 'carbine',
       armor: 14,
     }),
     makeUnit({
       name: 'PVT. OKORO',
       faction: 'friendly',
-      pos: { x: 3.5, y: 5.5 },
+      pos: { x: 15.5, y: 12.5 },
+      facing: { x: 1, y: 0 },
       weapon: 'shotgun',
       armor: 12,
     }),
     makeUnit({
       name: 'PVT. REYES',
       faction: 'friendly',
-      pos: { x: 2.5, y: 8.5 },
+      pos: { x: 14.5, y: 12.5 },
+      facing: { x: 1, y: 0 },
       weapon: 'carbine',
       armor: 12,
     }),
     makeUnit({
       name: 'SPC. DANN',
       faction: 'friendly',
-      pos: { x: 3.5, y: 10.5 },
+      pos: { x: 15.5, y: 11.5 },
+      facing: { x: 1, y: 0 },
       weapon: 'saw', // hull-breaching — the squad's hull specialist (can VENT)
       armor: 16,
       suit: true, // EVA suit: can vent a room and walk in after
     }),
-    // defenders hold in the rooms with lighter armour; AI wakes on contact/noise.
-    // one sits just behind the upper door — a breach there stuns him.
-    makeUnit({
-      name: 'HOSTILE',
-      faction: 'hostile',
-      pos: { x: 14.5, y: 6.5 },
-      weapon: 'carbine',
-      armor: 6,
-    }),
-    makeUnit({
-      name: 'HOSTILE',
-      faction: 'hostile',
-      pos: { x: 26.5, y: 4.5 },
-      weapon: 'carbine',
-      armor: 6,
-    }),
-    makeUnit({
-      name: 'HOSTILE',
-      faction: 'hostile',
-      pos: { x: 27.5, y: 13.5 },
-      weapon: 'pistol',
-      armor: 4,
-    }),
+    // defenders spread through the ship; AI wakes on contact/noise
+    makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 20.5, y: 6.5 }, weapon: 'carbine', armor: 6 }), // bunkroom
+    makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 25.5, y: 7.5 }, weapon: 'pistol', armor: 4 }), // mess hall
+    makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 21.5, y: 24.5 }, weapon: 'shotgun', armor: 6 }, ), // cargo hold
+    makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 25.5, y: 17.5 }, weapon: 'carbine', armor: 8 }), // reactor ring
+    makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 34.5, y: 24.5 }, weapon: 'pistol', armor: 4 }), // lounge
+    makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 40.5, y: 16.5 }, weapon: 'carbine', armor: 6 }), // workshop
+    makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 47.5, y: 12.5 }, weapon: 'carbine', armor: 8 }), // bridge
+    makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 50.5, y: 17.5 }, weapon: 'pistol', armor: 6 }), // bridge
   ];
 
-  return { name: 'DERELICT — TWO-ROOM BOARDING', grid: g, units, seed: 20260712 };
+  return { name: 'MV CASPIAN — DECK SWEEP', grid: g, units, seed: 20260712 };
 }
