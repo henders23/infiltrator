@@ -14,8 +14,10 @@ export interface Unit {
   faction: Faction;
   /** Position in tile-space (floats allow smooth sub-tile movement). */
   pos: { x: number; y: number };
-  /** Facing as a unit vector; drives which way the soldier looks/aims. */
+  /** Body facing as a unit vector — the direction of travel; drives sprite rotation. */
   facing: { x: number; y: number };
+  /** Weapon aim as a unit vector — decoupled from facing so a soldier can move one way and fire another. */
+  aim: { x: number; y: number };
   hp: number;
   maxHp: number;
   /** In the fight. False = dead. A downed unit is alive but out of action. */
@@ -55,12 +57,14 @@ let nextId = 1;
 
 export function makeUnit(init: Partial<Unit> & Pick<Unit, 'name' | 'faction'>): Unit {
   const hp = init.hp ?? 100;
+  const facing = init.facing ?? { x: 1, y: 0 };
   return {
     id: init.id ?? nextId++,
     name: init.name,
     faction: init.faction,
     pos: init.pos ?? { x: 0, y: 0 },
-    facing: init.facing ?? { x: 1, y: 0 },
+    facing,
+    aim: init.aim ?? { ...facing },
     hp,
     maxHp: init.maxHp ?? hp,
     alive: init.alive ?? true,
