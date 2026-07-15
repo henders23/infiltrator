@@ -218,7 +218,8 @@ export function App() {
 
         <div style={styles.help}>
           <div><span className="k">Click soldier</span> / <span className="k">1–4</span> select · <span className="k">Tab</span> next alert</div>
-          <div><span className="k">Left-click</span> path (auto) · <span className="k">Shift</span> add leg</div>
+          <div><span className="k">Left-click</span> move anywhere (auto-route) · <span className="k">Shift</span> add leg</div>
+          <div><span className="k">Hold soldier + drag</span> face/strafe · <span className="k">Hold path + drag</span> face from there</div>
           <div><span className="k">B</span> breach · <span className="k">F</span> flash · <span className="k">G</span> frag · <span className="k">O</span> overwatch</div>
           <div><span className="k">V</span> vent hull · <span className="k">H</span> hold-fire · <span className="k">C</span> clear</div>
           <div><span className="k">Space</span> execute/pause · <span className="k">Wheel</span> zoom · <span className="k">Mid-drag</span> pan</div>

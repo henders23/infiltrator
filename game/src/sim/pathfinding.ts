@@ -82,3 +82,75 @@ function reconstruct(node: Node): Tile[] {
   path.reverse();
   return path;
 }
+
+// ── free (continuous) movement ────────────────────────────────────────────────
+// A* stays the router, but soldiers no longer walk tile-center to tile-center:
+// the tile path is string-pulled into the fewest straight legs that keep a body-
+// radius clearance from walls, and the last leg ends at the exact clicked point.
+
+export type Point = { x: number; y: number };
+
+const BODY_RADIUS = 0.3; // clearance (in tiles) kept from walls while cutting corners
+const SAMPLE_STEP = 0.12; // walkability sampling interval along a candidate segment
+
+/** True when a straight walk from `a` to `b` stays clear of walls (with clearance). */
+export function segmentClear(grid: Grid, a: Point, b: Point, radius = BODY_RADIUS): boolean {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy);
+  const steps = Math.max(1, Math.ceil(len / SAMPLE_STEP));
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const px = a.x + dx * t;
+    const py = a.y + dy * t;
+    // the body is a disc: probe its center and the four diagonal extremes so a
+    // segment can't shave through a wall corner
+    for (const [ox, oy] of [[0, 0], [radius, radius], [radius, -radius], [-radius, radius], [-radius, -radius]] as const) {
+      if (!grid.isWalkable(Math.floor(px + ox), Math.floor(py + oy))) return false;
+    }
+  }
+  return true;
+}
+
+/** Nudge a point so the body disc clears any wall bordering its tile. */
+export function clampToWalkable(grid: Grid, p: Point, margin = BODY_RADIUS + 0.05): Point {
+  const tx = Math.floor(p.x);
+  const ty = Math.floor(p.y);
+  let x = p.x;
+  let y = p.y;
+  if (!grid.isWalkable(tx + 1, ty)) x = Math.min(x, tx + 1 - margin);
+  if (!grid.isWalkable(tx - 1, ty)) x = Math.max(x, tx + margin);
+  if (!grid.isWalkable(tx, ty + 1)) y = Math.min(y, ty + 1 - margin);
+  if (!grid.isWalkable(tx, ty - 1)) y = Math.max(y, ty + margin);
+  return { x, y };
+}
+
+/**
+ * Collapse a tile path into fluid straight legs (greedy string pulling), from the
+ * unit's exact position to the exact goal point (nudged clear of walls). Returns
+ * at least one point.
+ */
+export function smoothPath(grid: Grid, start: Point, tiles: Tile[], goal: Point): Point[] {
+  const g = clampToWalkable(grid, goal);
+  const pts: Point[] = tiles.map((t) => ({ x: t.x + 0.5, y: t.y + 0.5 }));
+  if (pts.length) pts[pts.length - 1] = g;
+  else pts.push(g);
+
+  const out: Point[] = [];
+  let anchor = start;
+  let i = 0;
+  while (i < pts.length) {
+    // reach as far ahead as a clear straight line allows
+    let j = i;
+    for (let k = pts.length - 1; k > i; k--) {
+      if (segmentClear(grid, anchor, pts[k])) {
+        j = k;
+        break;
+      }
+    }
+    out.push(pts[j]);
+    anchor = pts[j];
+    i = j + 1;
+  }
+  return out;
+}

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { findPath } from './pathfinding';
+import { findPath, segmentClear, smoothPath } from './pathfinding';
 import { gridFromAscii, WALL } from './grid';
 import { makeRng } from './rng';
-import { currentStep, moveOrder } from './orders';
+import { currentStep, moveOrder, moveStep } from './orders';
 import { makeUnit } from './unit';
 import { World } from './world';
 
@@ -71,6 +71,64 @@ describe('pathfinding', () => {
     // moving from (1,1) to (2,2) diagonally is blocked by the corner walls
     const g = gridFromAscii(['####', '#.##', '##.#', '####']);
     expect(findPath(g, 1, 1, 2, 2)).toBeNull();
+  });
+});
+
+describe('free movement — segment clearance + string pulling', () => {
+  const grid = gridFromAscii([
+    '########',
+    '#......#',
+    '#.####.#',
+    '#......#',
+    '########',
+  ]);
+  it('sees straight lines in the open and rejects lines through walls', () => {
+    expect(segmentClear(grid, { x: 1.5, y: 1.5 }, { x: 6.5, y: 1.5 })).toBe(true);
+    expect(segmentClear(grid, { x: 1.5, y: 1.5 }, { x: 6.5, y: 3.5 })).toBe(false); // through the block
+  });
+  it('collapses a tile path to fluid legs ending at the exact goal point', () => {
+    const goal = { x: 6.2, y: 3.7 }; // hugs the bottom wall — gets nudged to body clearance
+    const tiles = findPath(grid, 1, 1, Math.floor(goal.x), Math.floor(goal.y))!;
+    const pts = smoothPath(grid, { x: 1.5, y: 1.5 }, tiles, goal);
+    expect(pts.length).toBeLessThan(tiles.length); // fewer legs than raw tile hops
+    const end = pts[pts.length - 1];
+    expect(Math.hypot(end.x - goal.x, end.y - goal.y)).toBeLessThan(0.4); // lands on the click, not a tile center
+    // every leg is walkable as a straight line
+    let prev = { x: 1.5, y: 1.5 };
+    for (const p of pts) {
+      expect(segmentClear(grid, prev, p)).toBe(true);
+      prev = p;
+    }
+  });
+});
+
+describe('strafing — locked orientation while moving', () => {
+  const openDeck = () => gridFromAscii(Array.from({ length: 6 }, () => '.'.repeat(12)));
+
+  it('a strafe lock keeps the body facing while the unit travels', () => {
+    const grid = openDeck();
+    const u = makeUnit({ name: 'A', faction: 'friendly', pos: { x: 1.5, y: 1.5 }, speed: 4 });
+    u.strafe = { x: 0, y: -1 }; // face "up" while moving right
+    const world = new World(grid, [u], 1);
+    u.order = { steps: [moveStep([{ x: 9.5, y: 1.5 }])], step: 0 };
+    for (let i = 0; i < 30; i++) world.step(1 / 60);
+    expect(u.pos.x).toBeGreaterThan(2); // moving…
+    expect(u.facing).toEqual({ x: 0, y: -1 }); // …but still facing up
+  });
+
+  it('a facing waypoint flips the body once its distance is passed', () => {
+    const grid = openDeck();
+    const u = makeUnit({ name: 'A', faction: 'friendly', pos: { x: 1.5, y: 1.5 }, speed: 4 });
+    const world = new World(grid, [u], 1);
+    const step = moveStep([{ x: 9.5, y: 1.5 }]);
+    step.facings.push({ at: 3, pos: { x: 4.5, y: 1.5 }, dir: { x: 0, y: 1 } });
+    u.order = { steps: [step], step: 0 };
+
+    for (let i = 0; i < 30; i++) world.step(1 / 60); // ~2 tiles in — before the waypoint
+    expect(u.facing).toEqual({ x: 1, y: 0 }); // still facing travel
+    for (let i = 0; i < 60; i++) world.step(1 / 60); // well past 3 tiles traveled
+    expect(u.strafe).toEqual({ x: 0, y: 1 });
+    expect(u.facing).toEqual({ x: 0, y: 1 }); // strafing from the waypoint on
   });
 });
 

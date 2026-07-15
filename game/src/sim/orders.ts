@@ -9,9 +9,24 @@ import { Tile } from './grid';
 export type Vec = { x: number; y: number };
 export type GrenadeType = 'frag' | 'flash';
 
+/**
+ * An orientation change pinned to a point along a move leg: once the soldier has
+ * traveled `at` (polyline distance from where the order was issued), the body locks
+ * to `dir` and he strafes from there on. `pos` is only for rendering the marker.
+ */
+export interface FacingWaypoint {
+  at: number;
+  pos: Vec;
+  dir: Vec;
+}
+
 export type Step =
-  /** Walk a path; `index` is the next node to reach. */
-  | { kind: 'move'; path: Tile[]; index: number }
+  /**
+   * Walk a smoothed polyline of CONTINUOUS points (tile-space floats, not tile
+   * centers); `index` is the next point to reach, `traveled` the distance covered
+   * so far (drives `facings` — see FacingWaypoint).
+   */
+  | { kind: 'move'; path: Vec[]; index: number; traveled: number; facings: FacingWaypoint[] }
   /** Loudly force a door: instant open + stun beyond it, but makes noise. `timer` counts down. */
   | { kind: 'breach'; door: Tile; timer: number }
   /** Blow a charge on a HULL wall to vent the compartment to vacuum. Needs a breaching weapon. */
@@ -36,8 +51,14 @@ export function holdOrder(): Order {
   return { steps: [{ kind: 'hold' }], step: 0 };
 }
 
+/** A bare move step along continuous points. */
+export function moveStep(points: Vec[]): Extract<Step, { kind: 'move' }> {
+  return { kind: 'move', path: points, index: 0, traveled: 0, facings: [] };
+}
+
+/** Move order from a tile path (e.g. raw A* output) — walks tile centers. */
 export function moveOrder(path: Tile[]): Order {
-  return { steps: [{ kind: 'move', path, index: 0 }], step: 0 };
+  return { steps: [moveStep(path.map((t) => ({ x: t.x + 0.5, y: t.y + 0.5 })))], step: 0 };
 }
 
 export function currentStep(o: Order): Step {
