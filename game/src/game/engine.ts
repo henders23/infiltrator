@@ -7,6 +7,13 @@
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text, Texture } from 'pixi.js';
 import soldiersUrl from '../assets/soldiers.png';
 import deckUrl from '../assets/ship-deck.jpg';
+import rifleSfx from '../assets/sfx/rifle.mp3';
+import shotgunSfx from '../assets/sfx/shotgun.mp3';
+import mgSfx from '../assets/sfx/mg.mp3';
+import pistolSfx from '../assets/sfx/pistol.mp3';
+import grenadeSfx from '../assets/sfx/grenade.mp3';
+import blastSfx from '../assets/sfx/blast.mp3';
+import { AudioBank, SfxName } from './audio';
 import { DOOR, SPACE, WALL } from '../sim/grid';
 import { findPath, Point, smoothPath } from '../sim/pathfinding';
 import {
@@ -23,7 +30,7 @@ import {
   Vec,
 } from '../sim/orders';
 import { isActive, isStunned, Unit } from '../sim/unit';
-import { World, REVEAL_RADIUS } from '../sim/world';
+import { Blast, Shot, World, REVEAL_RADIUS } from '../sim/world';
 import { Mission } from '../content/maps';
 import { weaponOf } from '../content/weapons';
 import { COLORS, FONT_MONO } from '../ui/theme';
@@ -31,6 +38,22 @@ import { COLORS, FONT_MONO } from '../ui/theme';
 const TILE_PX = 28;
 const FIXED_DT = 1 / 60; // deterministic sim step
 const EMIT_INTERVAL = 0.1; // throttle UI snapshots to ~10 Hz
+
+// procedural walk animation (no per-frame art; we wobble the single static sprite)
+const WALK_CADENCE = 7.0; // phase radians per tile travelled → step rhythm
+const WALK_SWAY = 0.07; // body roll amplitude (radians) at each footfall
+const WALK_BOB = 0.05; // step squash amplitude (fraction of height)
+const IDLE_BREATHE = 0.02; // gentle scale pulse while standing
+const SHOT_TTL = 0.12; // shot/tracer lifetime in seconds (mirrors world.ts) — muzzle-flash fade
+
+// per-weapon fire sound. `duration` slices a single crack out of a longer sample
+// (so the SAW reads as fast chatter instead of overlapping full bursts).
+const SHOT_SFX: Record<string, { name: SfxName; rate: number; volume: number; duration?: number }> = {
+  carbine: { name: 'rifle', rate: 1.0, volume: 0.5, duration: 0.42 },
+  pistol: { name: 'pistol', rate: 1.0, volume: 0.42, duration: 0.4 },
+  shotgun: { name: 'shotgun', rate: 0.95, volume: 0.6, duration: 0.6 },
+  saw: { name: 'mg', rate: 1.05, volume: 0.4, duration: 0.16 },
+};
 
 /** What the next left-click on the deck means for the selected soldier. */
 export type OrderMode = 'move' | 'breach' | 'flash' | 'frag' | 'overwatch' | 'vent';
@@ -81,6 +104,10 @@ interface UnitView {
   sprite: Sprite;
   body: Graphics;
   label: Text;
+  baseScale: number; // sprite scale before walk squash
+  animPhase: number; // advanced by distance travelled → walk cadence
+  prevX: number;
+  prevY: number;
 }
 
 export class Engine {
@@ -125,6 +152,18 @@ export class Engine {
   private readonly log: string[] = [];
   private drainedEvents = 0;
   private emitAcc = 0;
+  private animClock = 0; // wall-clock-ish accumulator (advances even while paused)
+
+  private readonly audio = new AudioBank({
+    rifle: rifleSfx,
+    shotgun: shotgunSfx,
+    mg: mgSfx,
+    pistol: pistolSfx,
+    grenade: grenadeSfx,
+    blast: blastSfx,
+  });
+  private audioShots = 0; // consumed count → play each new shot/blast once
+  private audioBlasts = 0;
 
   onSnapshot?: (s: Snapshot) => void;
 
@@ -190,7 +229,9 @@ export class Engine {
         steps++;
       }
     }
+    this.animClock += clamped;
     this.pumpEvents();
+    this.pumpAudio();
     this.checkContacts();
     this.checkCasualties();
     this.drawFrame();
@@ -206,6 +247,45 @@ export class Engine {
       this.log.push(this.world.events[this.drainedEvents].text);
     }
     if (this.log.length > 60) this.log.splice(0, this.log.length - 60);
+  }
+
+  /** Fire a sound for each new shot/blast since last frame (diffing lifetime totals
+   *  so the rolling arrays don't cause double-plays or misses). */
+  private pumpAudio(): void {
+    const dShots = this.world.shotsFired - this.audioShots;
+    if (dShots > 0) {
+      const recent = this.world.shots.slice(Math.max(0, this.world.shots.length - dShots));
+      for (const s of recent) this.playShot(s);
+      this.audioShots = this.world.shotsFired;
+    }
+    const dBlasts = this.world.blastsFired - this.audioBlasts;
+    if (dBlasts > 0) {
+      const recent = this.world.blasts.slice(Math.max(0, this.world.blasts.length - dBlasts));
+      for (const b of recent) this.playBlast(b);
+      this.audioBlasts = this.world.blastsFired;
+    }
+  }
+
+  private playShot(s: Shot): void {
+    const cfg = SHOT_SFX[s.weapon] ?? SHOT_SFX.carbine;
+    // off-screen hostile fire is muffled, not silent — you hear the deck wake up
+    const seen = s.faction === 'friendly' || this.tileVisibleNow(Math.floor(s.from.x), Math.floor(s.from.y));
+    this.audio.play(cfg.name, { rate: cfg.rate, volume: cfg.volume * (seen ? 1 : 0.4), duration: cfg.duration });
+  }
+
+  private playBlast(b: Blast): void {
+    if (b.kind === 'frag') this.audio.play('grenade', { volume: 0.75 });
+    else if (b.kind === 'flash') this.audio.play('grenade', { volume: 0.5, rate: 1.3 });
+    else this.audio.play('blast', { volume: 0.7 }); // door breach / hull charge
+  }
+
+  /** Toggle all sound. */
+  toggleMute(): boolean {
+    this.audio.setMuted(!this.audio.isMuted());
+    const m = this.audio.isMuted();
+    this.log.push(m ? '♪ Sound muted.' : '♪ Sound on.');
+    this.emit();
+    return m;
   }
 
   /** "Plan meets reality": auto-pause the first time a hostile is seen. */
@@ -277,6 +357,14 @@ export class Engine {
     c.addEventListener('pointermove', (e) => this.onPointerMove(e));
     window.addEventListener('pointerup', (e) => this.onPointerUp(e));
     c.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
+    // browsers block audio until a user gesture — unlock on the first interaction
+    const unlock = () => {
+      void this.audio.unlock();
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
   }
 
   private localPointer(e: PointerEvent | WheelEvent): { x: number; y: number } {
@@ -372,7 +460,7 @@ export class Engine {
       const dir = this.dirFrom(this.ghostDrag.pos, this.hover);
       if (dir) {
         this.ghostDrag.dir = dir;
-        if (this.ghostSprite) this.ghostSprite.rotation = Math.atan2(dir.y, dir.x) + Math.PI / 2;
+        if (this.ghostSprite) this.ghostSprite.rotation = Math.atan2(dir.y, dir.x) - Math.PI / 2;
       }
     }
   }
@@ -782,11 +870,12 @@ export class Engine {
       // friendlies get the first cells; hostiles get later cells and a red tint
       const cell = u.faction === 'friendly' ? fi++ : 18 + hi++;
       const tex = this.cellTexture(cell);
+      let baseScale = 1;
       if (tex) {
         sprite.texture = tex;
         // human-scale against the ship art: a trooper spans just over a tile
-        const scale = (TILE_PX * 1.2) / tex.frame.height;
-        sprite.scale.set(scale);
+        baseScale = (TILE_PX * 1.2) / tex.frame.height;
+        sprite.scale.set(baseScale);
       } else {
         sprite.visible = false;
       }
@@ -798,7 +887,17 @@ export class Engine {
       label.anchor.set(0.5);
       root.addChild(ring, sprite, body, label);
       this.unitLayer.addChild(root);
-      this.views.set(u.id, { root, ring, sprite, body, label });
+      this.views.set(u.id, {
+        root,
+        ring,
+        sprite,
+        body,
+        label,
+        baseScale,
+        animPhase: 0,
+        prevX: u.pos.x,
+        prevY: u.pos.y,
+      });
     }
   }
 
@@ -878,11 +977,13 @@ export class Engine {
       const fromVisible = s.faction === 'friendly' || this.tileVisibleNow(Math.floor(s.from.x), Math.floor(s.from.y));
       if (!fromVisible) continue;
       const color = s.faction === 'friendly' ? COLORS.cyan : COLORS.red;
-      g.moveTo(s.from.x * TILE_PX, s.from.y * TILE_PX)
+      const fx = s.from.x * TILE_PX;
+      const fy = s.from.y * TILE_PX;
+      g.moveTo(fx, fy)
         .lineTo(s.to.x * TILE_PX, s.to.y * TILE_PX)
         .stroke({ width: s.hit ? 2 : 1, color, alpha: s.hit ? 0.85 : 0.35 });
-      g.circle(s.from.x * TILE_PX, s.from.y * TILE_PX, 3).fill({ color, alpha: 0.9 });
       if (s.hit) g.circle(s.to.x * TILE_PX, s.to.y * TILE_PX, 4).stroke({ width: 1.5, color: COLORS.orange });
+      this.drawMuzzleFlash(g, s, fx, fy);
     }
     // grenade / breach detonations — an expanding ring that fades with age
     for (const bl of this.world.blasts) {
@@ -894,6 +995,33 @@ export class Engine {
       if (bl.kind === 'flash')
         g.circle(bl.pos.x * TILE_PX, bl.pos.y * TILE_PX, bl.radius * TILE_PX * 0.5).fill({ color: 0xffffff, alpha: 0.25 * (1 - age) });
     }
+  }
+
+  /** A brief white-hot muzzle burst at the barrel, thrown forward along the shot and
+   *  fading over the shot's short lifetime. */
+  private drawMuzzleFlash(g: Graphics, s: Shot, fx: number, fy: number): void {
+    const age = Math.max(0, Math.min(1, (this.world.time - s.time) / SHOT_TTL));
+    const f = 1 - age; // 1 at the instant of firing → 0 as the tracer expires
+    if (f <= 0) return;
+    let dx = s.to.x - s.from.x;
+    let dy = s.to.y - s.from.y;
+    const d = Math.hypot(dx, dy) || 1;
+    dx /= d;
+    dy /= d;
+    const px = dx; // forward
+    const py = dy;
+    const nx = -dy; // perpendicular (flash spread)
+    const ny = dx;
+    const reach = TILE_PX * (0.45 + 0.35 * f) * f;
+    const tip = { x: fx + px * reach, y: fy + py * reach };
+    const spread = TILE_PX * 0.16 * f;
+    // a forward flame triangle + hot core
+    g.moveTo(fx + nx * spread, fy + ny * spread)
+      .lineTo(tip.x, tip.y)
+      .lineTo(fx - nx * spread, fy - ny * spread)
+      .fill({ color: 0xffd27a, alpha: 0.75 * f });
+    g.circle(fx + px * TILE_PX * 0.12, fy + py * TILE_PX * 0.12, (2.5 + 3 * f)).fill({ color: 0xffffff, alpha: 0.9 * f });
+    g.circle(fx, fy, TILE_PX * 0.18 * f + 1).fill({ color: COLORS.orange, alpha: 0.5 * f });
   }
 
   private drawFog(): void {
@@ -1080,12 +1208,26 @@ export class Engine {
       }
 
       // the trooper sprite: the BODY points along its travel facing (sheet art aims
-      // "up"), tint foes red. The weapon may be tracking a different direction — that's
-      // drawn as an aim line below, so a soldier can run one way while firing another.
+      // "down" +y, so subtract a quarter turn), tint foes red. The weapon may track a
+      // different direction — drawn as an aim line below, so a soldier can run one way
+      // while firing another. A footfall sway + step squash animate the still frame.
+      const moved = Math.hypot(u.pos.x - view.prevX, u.pos.y - view.prevY);
+      view.prevX = u.pos.x;
+      view.prevY = u.pos.y;
       if (view.sprite.texture) {
         view.sprite.visible = true;
-        view.sprite.rotation = Math.atan2(u.facing.y, u.facing.x) + Math.PI / 2;
         view.sprite.tint = u.faction === 'friendly' ? 0xffffff : 0xff7a5c;
+        const base = Math.atan2(u.facing.y, u.facing.x) - Math.PI / 2;
+        if (moved > 1e-4) {
+          view.animPhase += moved * WALK_CADENCE;
+          view.sprite.rotation = base + Math.sin(view.animPhase) * WALK_SWAY;
+          const squash = 1 + Math.sin(view.animPhase * 2) * WALK_BOB;
+          view.sprite.scale.set(view.baseScale, view.baseScale * squash);
+        } else {
+          const breathe = 1 + Math.sin(this.animClock * 1.8 + u.id) * IDLE_BREATHE;
+          view.sprite.rotation = base;
+          view.sprite.scale.set(view.baseScale * breathe, view.baseScale * breathe);
+        }
       }
 
       // weapon aim line whenever the gun is off the body axis or actively on a target

@@ -60,6 +60,8 @@ export function App() {
         engine.setOrderMode('vent');
       } else if (k === 'h') {
         engine.toggleHoldFire();
+      } else if (k === 'm') {
+        engine.toggleMute();
       } else if (ev.key === 'Tab') {
         ev.preventDefault();
         engine.selectNextAttention();
@@ -221,7 +223,7 @@ export function App() {
           <div><span className="k">Left-click</span> move anywhere (auto-route) · <span className="k">Shift</span> add leg</div>
           <div><span className="k">Hold soldier + drag</span> face/strafe · <span className="k">Hold path + drag</span> face from there</div>
           <div><span className="k">B</span> breach · <span className="k">F</span> flash · <span className="k">G</span> frag · <span className="k">O</span> overwatch</div>
-          <div><span className="k">V</span> vent hull · <span className="k">H</span> hold-fire · <span className="k">C</span> clear</div>
+          <div><span className="k">V</span> vent hull · <span className="k">H</span> hold-fire · <span className="k">C</span> clear · <span className="k">M</span> mute</div>
           <div><span className="k">Space</span> execute/pause · <span className="k">Wheel</span> zoom · <span className="k">Mid-drag</span> pan</div>
           <div style={{ color: CSS.muted, marginTop: 4 }}>
             Vent a room to kill everyone in it — including your own. Doors contain it.

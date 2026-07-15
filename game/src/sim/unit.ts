@@ -77,7 +77,7 @@ export function makeUnit(init: Partial<Unit> & Pick<Unit, 'name' | 'faction'>): 
     alive: init.alive ?? true,
     downed: init.downed ?? false,
     bleedout: init.bleedout ?? 0,
-    speed: init.speed ?? 4,
+    speed: init.speed ?? 3.2,
     weapon: init.weapon ?? 'carbine',
     armor: init.armor ?? 10,
     stress: init.stress ?? 0,

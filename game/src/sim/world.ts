@@ -27,6 +27,8 @@ export interface Shot {
   to: { x: number; y: number };
   hit: boolean;
   faction: Unit['faction'];
+  /** Weapon key that fired this shot — lets the renderer pick a muzzle flash + sound. */
+  weapon: string;
 }
 
 /** A grenade/breach detonation kept briefly for the renderer. */
@@ -77,6 +79,10 @@ export class World {
   readonly events: WorldEvent[] = [];
   readonly shots: Shot[] = [];
   readonly blasts: Blast[] = [];
+  /** Monotonic lifetime totals (never pruned) — the renderer diffs these to fire
+   *  audio exactly once per new shot/blast, even though the arrays roll over. */
+  shotsFired = 0;
+  blastsFired = 0;
   /** Tile indices of doors currently open (all doors start closed). */
   readonly openDoors = new Set<number>();
   /** Tile indices of hull breaches (holes to space). Sources of decompression. */
@@ -249,6 +255,7 @@ export class World {
   private forceDoor(door: { x: number; y: number }, by: Unit): void {
     this.openDoors.add(this.grid.idx(door.x, door.y));
     this.blasts.push({ time: this.time, pos: { x: door.x + 0.5, y: door.y + 0.5 }, radius: BREACH_STUN_RADIUS, kind: 'breach' });
+    this.blastsFired++;
     this.events.push({ time: this.time, kind: 'breach', text: `${by.name} breaches the door.` });
     // stun the defenders beyond — the payoff for going loud
     for (const o of this.units) {
@@ -264,6 +271,7 @@ export class World {
   private detonate(target: { x: number; y: number }, gtype: GrenadeType, by: Unit): void {
     const radius = gtype === 'flash' ? FLASH_RADIUS : FRAG_RADIUS;
     this.blasts.push({ time: this.time, pos: { x: target.x + 0.5, y: target.y + 0.5 }, radius, kind: gtype });
+    this.blastsFired++;
     this.events.push({
       time: this.time,
       kind: 'grenade',
@@ -294,6 +302,7 @@ export class World {
       if (this.isHullWall(wx, wy)) this.breaches.add(this.grid.idx(wx, wy));
     }
     this.blasts.push({ time: this.time, pos: { x: wall.x + 0.5, y: wall.y + 0.5 }, radius: 3, kind: 'breach' });
+    this.blastsFired++;
     this.events.push({ time: this.time, kind: 'breach', text: `${by.name} blows the hull — compartment venting!` });
     this.makeNoise(wall.x + 0.5, wall.y + 0.5);
   }
@@ -543,7 +552,9 @@ export class World {
       to: { x: target.pos.x, y: target.pos.y },
       hit,
       faction: shooter.faction,
+      weapon: shooter.weapon,
     });
+    this.shotsFired++;
     // gunfire is loud — nearby idle defenders hear it
     if (shooter.faction === 'friendly') this.makeNoise(shooter.pos.x, shooter.pos.y, GUNFIRE_NOISE);
 
