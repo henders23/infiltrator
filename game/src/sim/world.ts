@@ -198,29 +198,40 @@ export class World {
   private runMove(u: Unit, s: Extract<Step, { kind: 'move' }>, dt: number): void {
     let budget = u.speed * dt;
     while (budget > 0 && s.index < s.path.length) {
+      // consume any facing waypoint we've passed: lock the body from here on (strafe)
+      while (s.facings.length && s.facings[0].at <= s.traveled) {
+        const wp = s.facings.shift()!;
+        u.strafe = { x: wp.dir.x, y: wp.dir.y };
+      }
       const node = s.path[s.index];
-      const tx = node.x + 0.5;
-      const ty = node.y + 0.5;
-      const dx = tx - u.pos.x;
-      const dy = ty - u.pos.y;
+      const dx = node.x - u.pos.x;
+      const dy = node.y - u.pos.y;
       const d = Math.hypot(dx, dy);
       if (d <= ARRIVE_EPS) {
-        u.pos.x = tx;
-        u.pos.y = ty;
-        this.onEnterTile(node.x, node.y);
+        u.pos.x = node.x;
+        u.pos.y = node.y;
+        this.onEnterTile(Math.floor(u.pos.x), Math.floor(u.pos.y));
         s.index++;
         continue;
       }
-      u.facing.x = dx / d;
-      u.facing.y = dy / d;
+      // body faces the travel direction — unless the player locked an orientation
+      if (u.strafe) {
+        u.facing.x = u.strafe.x;
+        u.facing.y = u.strafe.y;
+      } else {
+        u.facing.x = dx / d;
+        u.facing.y = dy / d;
+      }
       const stepDist = Math.min(budget, d);
       u.pos.x += (dx / d) * stepDist;
       u.pos.y += (dy / d) * stepDist;
       budget -= stepDist;
+      s.traveled += stepDist;
+      // fluid paths cross tiles mid-segment, so doors open by position, not by node
+      this.onEnterTile(Math.floor(u.pos.x), Math.floor(u.pos.y));
       if (d - stepDist <= ARRIVE_EPS) {
-        u.pos.x = tx;
-        u.pos.y = ty;
-        this.onEnterTile(node.x, node.y);
+        u.pos.x = node.x;
+        u.pos.y = node.y;
         s.index++;
       }
     }

@@ -18,6 +18,12 @@ export interface Unit {
   facing: { x: number; y: number };
   /** Weapon aim as a unit vector — decoupled from facing so a soldier can move one way and fire another. */
   aim: { x: number; y: number };
+  /**
+   * Player-locked body orientation. While set, movement does NOT turn the body to the
+   * travel direction — the soldier strafes, holding this facing. Set by the hold-drag
+   * orient gesture or by passing a FacingWaypoint; cleared when orders are cleared.
+   */
+  strafe: { x: number; y: number } | null;
   hp: number;
   maxHp: number;
   /** In the fight. False = dead. A downed unit is alive but out of action. */
@@ -65,6 +71,7 @@ export function makeUnit(init: Partial<Unit> & Pick<Unit, 'name' | 'faction'>): 
     pos: init.pos ?? { x: 0, y: 0 },
     facing,
     aim: init.aim ?? { ...facing },
+    strafe: init.strafe ?? null,
     hp,
     maxHp: init.maxHp ?? hp,
     alive: init.alive ?? true,

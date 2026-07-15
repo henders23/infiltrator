@@ -8,17 +8,19 @@ import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text, Text
 import soldiersUrl from '../assets/soldiers.png';
 import deckUrl from '../assets/ship-deck.jpg';
 import { DOOR, SPACE, WALL } from '../sim/grid';
-import { findPath } from '../sim/pathfinding';
+import { findPath, Point, smoothPath } from '../sim/pathfinding';
 import {
   BREACH_TIME,
   currentStep,
+  FacingWaypoint,
   GrenadeType,
   GRENADE_FUSE,
   holdOrder,
   HULLCHARGE_TIME,
   isPlanComplete,
-  moveOrder,
+  moveStep,
   Step,
+  Vec,
 } from '../sim/orders';
 import { isActive, isStunned, Unit } from '../sim/unit';
 import { World, REVEAL_RADIUS } from '../sim/world';
@@ -102,7 +104,7 @@ export class Engine {
   paused = true;
   selectedId: number | null = null;
   orderMode: OrderMode = 'move';
-  private hover: { x: number; y: number } | null = null;
+  private hover: Point | null = null; // world-space (continuous tile coords)
 
   private acc = 0;
   private camera = { x: 0, y: 0, scale: 1 };
@@ -110,6 +112,13 @@ export class Engine {
   private rightMaybeClear = false;
   private dragMoved = 0;
   private pointerPrev = { x: 0, y: 0 };
+
+  // press-and-hold gestures (left button, move mode):
+  // on a soldier → drag to set his orientation (he'll strafe, holding it);
+  // on his planned path → a ghost appears there; drag sets his facing from that point on.
+  private orientDrag: { id: number } | null = null;
+  private ghostDrag: { id: number; stepIdx: number; at: number; pos: Point; dir: Vec | null } | null = null;
+  private ghostSprite: Sprite | null = null;
 
   private readonly contacted = new Set<number>();
   private readonly downSeen = new Set<number>();
@@ -247,10 +256,17 @@ export class Engine {
     this.stage.scale.set(this.camera.scale);
   }
 
+  /** Continuous world position (tile-space floats) under a screen point. */
+  private screenToWorld(sx: number, sy: number): Point {
+    return {
+      x: (sx - this.camera.x) / this.camera.scale / TILE_PX,
+      y: (sy - this.camera.y) / this.camera.scale / TILE_PX,
+    };
+  }
+
   private screenToTile(sx: number, sy: number): { x: number; y: number } {
-    const wx = (sx - this.camera.x) / this.camera.scale / TILE_PX;
-    const wy = (sy - this.camera.y) / this.camera.scale / TILE_PX;
-    return { x: Math.floor(wx), y: Math.floor(wy) };
+    const w = this.screenToWorld(sx, sy);
+    return { x: Math.floor(w.x), y: Math.floor(w.y) };
   }
 
   // ── input ─────────────────────────────────────────────────────────────────
@@ -282,18 +298,28 @@ export class Engine {
     }
     if (e.button === 0) {
       const tile = this.screenToTile(p.x, p.y);
-      // clicking a friendly always selects it (in any mode)
-      const friendly = this.friendlyAt(tile.x, tile.y);
+      const w = this.screenToWorld(p.x, p.y);
+      // pressing a friendly selects it — and holding starts the orient (strafe) drag
+      const friendly = this.friendlyNear(w.x, w.y);
       if (friendly && this.orderMode === 'move') {
         this.selectedId = friendly.id;
+        this.orientDrag = { id: friendly.id };
         this.emit();
         return;
       }
       if (this.selectedId == null) return;
       switch (this.orderMode) {
-        case 'move':
-          this.issueMove(tile.x, tile.y, e.shiftKey);
+        case 'move': {
+          // holding on the planned line drops a ghost whose orientation applies from there
+          const hit = this.hitPlannedPath(w);
+          if (hit) {
+            this.ghostDrag = { ...hit, dir: null };
+            this.showGhost(hit.pos);
+            return;
+          }
+          this.issueMove(w.x, w.y, e.shiftKey);
           break;
+        }
         case 'breach':
           this.issueBreach(tile.x, tile.y);
           this.setOrderMode('move');
@@ -326,7 +352,29 @@ export class Engine {
       this.applyCamera();
     }
     this.pointerPrev = p;
-    this.hover = this.screenToTile(p.x, p.y);
+    this.hover = this.screenToWorld(p.x, p.y);
+
+    if (this.orientDrag && this.dragMoved > 6) {
+      // live orient: turn the held soldier toward the cursor and lock it (strafe)
+      const u = this.world.unit(this.orientDrag.id);
+      if (u) {
+        const dir = this.dirFrom(u.pos, this.hover);
+        if (dir) {
+          u.strafe = dir;
+          u.facing.x = dir.x;
+          u.facing.y = dir.y;
+          u.aim.x = dir.x;
+          u.aim.y = dir.y;
+        }
+      }
+    }
+    if (this.ghostDrag && this.dragMoved > 6) {
+      const dir = this.dirFrom(this.ghostDrag.pos, this.hover);
+      if (dir) {
+        this.ghostDrag.dir = dir;
+        if (this.ghostSprite) this.ghostSprite.rotation = Math.atan2(dir.y, dir.x) + Math.PI / 2;
+      }
+    }
   }
 
   private onPointerUp(e: PointerEvent): void {
@@ -335,6 +383,22 @@ export class Engine {
       if (this.rightMaybeClear && this.dragMoved <= 6) this.clearSelectedOrder();
       this.rightMaybeClear = false;
     }
+    if (e.button === 0) {
+      if (this.ghostDrag) {
+        this.commitGhost();
+        this.ghostDrag = null;
+        this.hideGhost();
+      }
+      this.orientDrag = null; // orientation was applied live during the drag
+    }
+  }
+
+  /** Unit direction from `from` to `to`, or null inside a small dead zone. */
+  private dirFrom(from: Point, to: Point): Vec | null {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const d = Math.hypot(dx, dy);
+    return d < 0.2 ? null : { x: dx / d, y: dy / d };
   }
 
   private onWheel(e: WheelEvent): void {
@@ -389,11 +453,11 @@ export class Engine {
     this.selectedId = flagged[(cur + 1) % flagged.length].id;
     this.emit();
   }
-  /** Select a unit and give it a move order in one call (used by UI shortcuts/tests). */
+  /** Select a unit and give it a move order in one call (used by UI shortcuts/tests). Tile coords. */
   orderMoveTo(id: number, tx: number, ty: number, append = false): void {
     if (this.world.unit(id)?.faction !== 'friendly') return;
     this.selectedId = id;
-    this.issueMove(tx, ty, append);
+    this.issueMove(tx + 0.5, ty + 0.5, append);
   }
   orderBreach(id: number, dx: number, dy: number): void {
     if (this.world.unit(id)?.faction !== 'friendly') return;
@@ -420,22 +484,34 @@ export class Engine {
     if (u) {
       u.order = holdOrder();
       u.attention = null;
+      u.strafe = null; // unlock the body — face travel again on the next move
       this.setOrderMode('move');
       this.emit();
     }
   }
 
   // ── plan building (append action waypoints to the selected soldier) ──────────
-  /** Tile the soldier will occupy after its current plan runs (for chaining steps). */
-  private planEndTile(u: Unit): { x: number; y: number } {
-    let tile = { x: Math.floor(u.pos.x), y: Math.floor(u.pos.y) };
+  /** Exact point the soldier will stand on after its current plan runs (for chaining). */
+  private planEndPoint(u: Unit): Point {
+    let p = { x: u.pos.x, y: u.pos.y };
     for (const s of u.order.steps) {
       if (s.kind === 'move' && s.path.length) {
         const n = s.path[s.path.length - 1];
-        tile = { x: n.x, y: n.y };
+        p = { x: n.x, y: n.y };
       }
     }
-    return tile;
+    return p;
+  }
+  /** Tile the soldier will occupy after its current plan runs. */
+  private planEndTile(u: Unit): { x: number; y: number } {
+    const p = this.planEndPoint(u);
+    return { x: Math.floor(p.x), y: Math.floor(p.y) };
+  }
+  /** Route from `from` to the exact point `to`: A* between tiles, string-pulled fluid. */
+  private routeTo(from: Point, to: Point): Point[] | null {
+    const tiles = findPath(this.mission.grid, Math.floor(from.x), Math.floor(from.y), Math.floor(to.x), Math.floor(to.y));
+    if (!tiles) return null;
+    return smoothPath(this.mission.grid, from, tiles, to);
   }
   /** True when the soldier is just standing (no pending plan) — start fresh on next step. */
   private isStanding(u: Unit): boolean {
@@ -447,23 +523,23 @@ export class Engine {
     u.attention = null;
   }
 
-  private issueMove(tx: number, ty: number, append: boolean): void {
+  /** Move the selected soldier to an exact world point (continuous, not tile-snapped). */
+  private issueMove(wx: number, wy: number, append: boolean): void {
     const u = this.selected();
-    if (!u || !this.mission.grid.isWalkable(tx, ty)) return;
+    if (!u || !this.mission.grid.isWalkable(Math.floor(wx), Math.floor(wy))) return;
+    const to = { x: wx, y: wy };
     if (!append) {
-      const from = { x: Math.floor(u.pos.x), y: Math.floor(u.pos.y) };
-      const path = findPath(this.mission.grid, from.x, from.y, tx, ty);
-      if (path && path.length) {
-        u.order = moveOrder(path);
+      const pts = this.routeTo(u.pos, to);
+      if (pts && pts.length) {
+        u.order = { steps: [moveStep(pts)], step: 0 };
         u.attention = null;
       }
     } else {
-      const from = this.planEndTile(u);
-      const seg = findPath(this.mission.grid, from.x, from.y, tx, ty);
-      if (seg && seg.length) {
+      const pts = this.routeTo(this.planEndPoint(u), to);
+      if (pts && pts.length) {
         const last = u.order.steps[u.order.steps.length - 1];
-        if (!this.isStanding(u) && last && last.kind === 'move') last.path = last.path.concat(seg);
-        else this.appendStep(u, { kind: 'move', path: seg, index: 0 });
+        if (!this.isStanding(u) && last && last.kind === 'move') last.path = last.path.concat(pts);
+        else this.appendStep(u, moveStep(pts));
       }
     }
     this.emit();
@@ -472,11 +548,11 @@ export class Engine {
   private issueBreach(dx: number, dy: number): void {
     const u = this.selected();
     if (!u || this.mission.grid.get(dx, dy) !== DOOR) return;
-    const from = this.planEndTile(u);
-    const approach = this.approachTile(dx, dy, from);
-    if (approach && (approach.x !== from.x || approach.y !== from.y)) {
-      const seg = findPath(this.mission.grid, from.x, from.y, approach.x, approach.y);
-      if (seg && seg.length) this.appendStep(u, { kind: 'move', path: seg, index: 0 });
+    const from = this.planEndPoint(u);
+    const approach = this.approachTile(dx, dy, this.planEndTile(u));
+    if (approach && (approach.x !== Math.floor(from.x) || approach.y !== Math.floor(from.y))) {
+      const pts = this.routeTo(from, { x: approach.x + 0.5, y: approach.y + 0.5 });
+      if (pts && pts.length) this.appendStep(u, moveStep(pts));
     }
     this.appendStep(u, { kind: 'breach', door: { x: dx, y: dy }, timer: BREACH_TIME });
     this.emit();
@@ -503,12 +579,12 @@ export class Engine {
       this.emit();
       return;
     }
-    const from = this.planEndTile(u);
-    const approach = this.approachTile(dx, dy, from);
+    const from = this.planEndPoint(u);
+    const approach = this.approachTile(dx, dy, this.planEndTile(u));
     if (!approach) return;
-    if (approach.x !== from.x || approach.y !== from.y) {
-      const seg = findPath(this.mission.grid, from.x, from.y, approach.x, approach.y);
-      if (seg && seg.length) this.appendStep(u, { kind: 'move', path: seg, index: 0 });
+    if (approach.x !== Math.floor(from.x) || approach.y !== Math.floor(from.y)) {
+      const pts = this.routeTo(from, { x: approach.x + 0.5, y: approach.y + 0.5 });
+      if (pts && pts.length) this.appendStep(u, moveStep(pts));
     }
     this.appendStep(u, { kind: 'hullcharge', wall: { x: dx, y: dy }, timer: HULLCHARGE_TIME });
     this.emit();
@@ -517,9 +593,9 @@ export class Engine {
   private issueOverwatch(tx: number, ty: number): void {
     const u = this.selected();
     if (!u) return;
-    const from = this.planEndTile(u);
-    let dx = tx + 0.5 - (from.x + 0.5);
-    let dy = ty + 0.5 - (from.y + 0.5);
+    const from = this.planEndPoint(u);
+    let dx = tx + 0.5 - from.x;
+    let dy = ty + 0.5 - from.y;
     const d = Math.hypot(dx, dy) || 1;
     dx /= d;
     dy /= d;
@@ -543,10 +619,87 @@ export class Engine {
   private selected(): Unit | undefined {
     return this.selectedId == null ? undefined : this.world.unit(this.selectedId);
   }
-  private friendlyAt(x: number, y: number): Unit | undefined {
+  /** The living friendly whose body disc is under a continuous world point. */
+  private friendlyNear(wx: number, wy: number): Unit | undefined {
     return this.world.units.find(
-      (u) => u.alive && u.faction === 'friendly' && Math.floor(u.pos.x) === x && Math.floor(u.pos.y) === y,
+      (u) => u.alive && u.faction === 'friendly' && Math.hypot(u.pos.x - wx, u.pos.y - wy) <= 0.55,
     );
+  }
+
+  /**
+   * Hit-test a world point against the selected soldier's remaining planned line.
+   * Returns which move step was hit, the exact point on the line, and `at` — the
+   * step's polyline distance there (comparable with the step's `traveled`).
+   */
+  private hitPlannedPath(w: Point): { id: number; stepIdx: number; at: number; pos: Point } | null {
+    const u = this.selected();
+    if (!u || !isActive(u)) return null;
+    const threshold = 10 / (this.camera.scale * TILE_PX); // ~10 screen px, in tiles
+    let cursor: Point = { x: u.pos.x, y: u.pos.y };
+    let best: { id: number; stepIdx: number; at: number; pos: Point; d: number } | null = null;
+    for (let i = u.order.step; i < u.order.steps.length; i++) {
+      const s = u.order.steps[i];
+      if (s.kind !== 'move') continue;
+      const active = i === u.order.step;
+      const nodes = active ? s.path.slice(s.index) : s.path;
+      let at = active ? s.traveled : 0;
+      let prev = cursor;
+      for (const n of nodes) {
+        const seg = { x: n.x - prev.x, y: n.y - prev.y };
+        const len = Math.hypot(seg.x, seg.y);
+        if (len > 1e-6) {
+          const t = Math.max(0, Math.min(1, ((w.x - prev.x) * seg.x + (w.y - prev.y) * seg.y) / (len * len)));
+          const px = prev.x + seg.x * t;
+          const py = prev.y + seg.y * t;
+          const d = Math.hypot(w.x - px, w.y - py);
+          if (d <= threshold && (!best || d < best.d)) {
+            best = { id: u.id, stepIdx: i, at: at + len * t, pos: { x: px, y: py }, d };
+          }
+          at += len;
+        }
+        prev = n;
+      }
+      cursor = prev;
+    }
+    if (!best) return null;
+    return { id: best.id, stepIdx: best.stepIdx, at: best.at, pos: best.pos };
+  }
+
+  // ── ghost (orientation waypoint being placed on the planned line) ────────────
+  private showGhost(pos: Point): void {
+    const u = this.selected();
+    if (!u) return;
+    const src = this.views.get(u.id)?.sprite;
+    const ghost = new Sprite(src?.texture ?? Texture.EMPTY);
+    ghost.anchor.set(0.5);
+    if (src) ghost.scale.set(src.scale.x);
+    ghost.alpha = 0.45;
+    ghost.rotation = src?.rotation ?? 0;
+    ghost.position.set(pos.x * TILE_PX, pos.y * TILE_PX);
+    this.unitLayer.addChild(ghost);
+    this.ghostSprite = ghost;
+  }
+
+  private hideGhost(): void {
+    if (this.ghostSprite) {
+      this.ghostSprite.destroy();
+      this.ghostSprite = null;
+    }
+  }
+
+  /** Drop the dragged ghost orientation into the move step as a facing waypoint. */
+  private commitGhost(): void {
+    const gd = this.ghostDrag;
+    if (!gd || !gd.dir) return; // released without choosing a direction — cancel
+    const u = this.world.unit(gd.id);
+    const s = u?.order.steps[gd.stepIdx];
+    if (!u || !s || s.kind !== 'move') return;
+    const wp: FacingWaypoint = { at: gd.at, pos: { x: gd.pos.x, y: gd.pos.y }, dir: gd.dir };
+    // waypoints later on the line override earlier ones from their point onward
+    const idx = s.facings.findIndex((f) => f.at > wp.at);
+    if (idx < 0) s.facings.push(wp);
+    else s.facings.splice(idx, 0, wp);
+    this.emit();
   }
   /** Currently within reveal radius of a living friendly (fog "visible now"). */
   private isVisible(u: Unit): boolean {
@@ -605,21 +758,14 @@ export class Engine {
     }
   }
 
-  /** A sub-texture for one trooper cell of the sheet (inset to trim black margins/bleed). */
+  /** A sub-texture for one trooper cell of the sheet (background is transparent). */
   private cellTexture(index: number): Texture | null {
     if (!this.soldierSheet) return null;
     const cached = this.cellTextures.get(index);
     if (cached) return cached;
     const col = index % SHEET_COLS;
     const row = Math.floor(index / SHEET_COLS) % SHEET_ROWS;
-    const insetX = CELL_W * 0.08;
-    const insetY = CELL_H * 0.05;
-    const frame = new Rectangle(
-      col * CELL_W + insetX,
-      row * CELL_H + insetY,
-      CELL_W - insetX * 2,
-      CELL_H - insetY * 2,
-    );
+    const frame = new Rectangle(col * CELL_W, row * CELL_H, CELL_W, CELL_H);
     const tex = new Texture({ source: this.soldierSheet.source, frame });
     this.cellTextures.set(index, tex);
     return tex;
@@ -784,19 +930,56 @@ export class Engine {
       if (isPlanComplete(u.order) && currentStep(u.order).kind !== 'overwatch') continue;
       this.drawUnitPlan(g, u, u.id === this.selectedId);
     }
-    // live A* preview from the selected unit to the hovered tile while planning (move mode)
-    if (this.paused && this.hover && this.orderMode === 'move') {
+    // live route preview from the selected unit to the hovered point while planning
+    if (this.paused && this.hover && this.orderMode === 'move' && !this.orientDrag && !this.ghostDrag) {
       const u = this.selected();
-      if (u && this.mission.grid.isWalkable(this.hover.x, this.hover.y)) {
-        const from = this.planEndTile(u);
-        const preview = findPath(this.mission.grid, from.x, from.y, this.hover.x, this.hover.y);
+      if (u && this.mission.grid.isWalkable(Math.floor(this.hover.x), Math.floor(this.hover.y))) {
+        const from = this.planEndPoint(u);
+        const preview = this.routeTo(from, this.hover);
         if (preview && preview.length) {
-          g.moveTo((from.x + 0.5) * TILE_PX, (from.y + 0.5) * TILE_PX);
-          for (const n of preview) g.lineTo((n.x + 0.5) * TILE_PX, (n.y + 0.5) * TILE_PX);
-          g.stroke({ width: 1, color: COLORS.cyan, alpha: 0.3 });
+          this.dashedPolyline(g, [from, ...preview], { width: 1, color: COLORS.cyan, alpha: 0.3 });
         }
       }
     }
+    // the ghost's chosen orientation, while the player is dragging it out
+    if (this.ghostDrag?.dir) {
+      const { pos, dir } = this.ghostDrag;
+      g.moveTo(pos.x * TILE_PX, pos.y * TILE_PX)
+        .lineTo((pos.x + dir.x * 0.9) * TILE_PX, (pos.y + dir.y * 0.9) * TILE_PX)
+        .stroke({ width: 2, color: COLORS.cyan, alpha: 0.8 });
+    }
+  }
+
+  /** Stroke a polyline (world tile coords) as a dotted/dashed line. */
+  private dashedPolyline(
+    g: Graphics,
+    pts: Point[],
+    style: { width: number; color: number; alpha: number },
+    dash = 5,
+    gap = 5,
+  ): void {
+    let carry = 0; // pattern offset carried across segments so corners don't reset it
+    for (let i = 1; i < pts.length; i++) {
+      const ax = pts[i - 1].x * TILE_PX;
+      const ay = pts[i - 1].y * TILE_PX;
+      const bx = pts[i].x * TILE_PX;
+      const by = pts[i].y * TILE_PX;
+      const len = Math.hypot(bx - ax, by - ay);
+      if (len < 1e-3) continue;
+      const ux = (bx - ax) / len;
+      const uy = (by - ay) / len;
+      let t = -carry;
+      while (t < len) {
+        const s0 = Math.max(0, t);
+        const s1 = Math.min(len, t + dash);
+        if (s1 > s0) {
+          g.moveTo(ax + ux * s0, ay + uy * s0).lineTo(ax + ux * s1, ay + uy * s1);
+        }
+        t += dash + gap;
+      }
+      carry = (len + carry) % (dash + gap);
+    }
+    g.stroke(style);
   }
 
   /** Walk a soldier's plan steps and draw legs, breach/grenade markers, overwatch cones. */
@@ -810,12 +993,21 @@ export class Engine {
       if (s.kind === 'move') {
         const nodes = i === u.order.step ? s.path.slice(s.index) : s.path;
         if (!nodes.length) continue;
-        g.moveTo(cx * TILE_PX, cy * TILE_PX);
-        for (const n of nodes) g.lineTo((n.x + 0.5) * TILE_PX, (n.y + 0.5) * TILE_PX);
-        g.stroke({ width: sel ? 2 : 1.5, color, alpha });
+        this.dashedPolyline(g, [{ x: cx, y: cy }, ...nodes], { width: sel ? 2 : 1.5, color, alpha });
+        // orientation waypoints ahead on this leg: a dot with a facing tick
+        for (const wp of s.facings) {
+          const wx = wp.pos.x * TILE_PX;
+          const wy = wp.pos.y * TILE_PX;
+          g.circle(wx, wy, 3.5).fill({ color, alpha });
+          g.moveTo(wx + wp.dir.x * 5, wy + wp.dir.y * 5)
+            .lineTo(wx + wp.dir.x * TILE_PX * 0.55, wy + wp.dir.y * TILE_PX * 0.55)
+            .stroke({ width: 2, color, alpha: alpha * 0.9 });
+        }
         const last = nodes[nodes.length - 1];
-        cx = last.x + 0.5;
-        cy = last.y + 0.5;
+        // destination marker so the exact clicked point reads clearly
+        g.circle(last.x * TILE_PX, last.y * TILE_PX, 3).stroke({ width: 1.5, color, alpha });
+        cx = last.x;
+        cy = last.y;
       } else if (s.kind === 'breach') {
         const bx = (s.door.x + 0.5) * TILE_PX;
         const by = (s.door.y + 0.5) * TILE_PX;
