@@ -6,12 +6,15 @@
 
 import { Grid, gridFromAscii } from '../sim/grid';
 import { makeUnit, Unit } from '../sim/unit';
+import { MissionGoal } from '../sim/world';
 
 export interface Mission {
   name: string;
   grid: Grid;
   units: Unit[];
   seed: number;
+  /** Assault win condition: secure the bridge, then extract the squad. */
+  goal: MissionGoal;
 }
 
 /** 60×33 deck plan, aligned 1:1 with the ship art (one tile ≈ 28 image px). */
@@ -102,5 +105,12 @@ export function makeDemoMission(): Mission {
     makeUnit({ name: 'HOSTILE', faction: 'hostile', pos: { x: 50.5, y: 17.5 }, weapon: 'pistol', armor: 6 }), // bridge
   ];
 
-  return { name: 'MV CASPIAN — DECK SWEEP', grid: g, units, seed: 20260712 };
+  const goal: MissionGoal = {
+    // secure the bridge at the bow (right), guarded by the two bridge defenders
+    objective: { x: 48, y: 14, radius: 2.6, channel: 3, label: 'BRIDGE' },
+    // then fall back to the aft airlock the squad boarded through (port, left)
+    extraction: { x: 14, y: 11, w: 3, h: 2, label: 'AIRLOCK' },
+  };
+
+  return { name: 'MV CASPIAN — TAKE THE BRIDGE', grid: g, units, seed: 20260712, goal };
 }

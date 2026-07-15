@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Engine, OrderMode } from '../game/engine';
 import { makeDemoMission } from '../content/maps';
 import { CSS, FONT_DISPLAY, FONT_MONO } from './theme';
@@ -18,8 +18,9 @@ export function App() {
   const engine = useGame((s) => s.engine);
   const snapshot = useGame((s) => s.snapshot);
   const { setEngine, setSnapshot } = useGame.getState();
+  const [runId, setRunId] = useState(0); // bump to redeploy a fresh mission
 
-  // boot the engine once, into the canvas host
+  // boot the engine, into the canvas host — re-runs on restart (runId change)
   useEffect(() => {
     if (!hostRef.current) return;
     const e = new Engine(makeDemoMission());
@@ -36,7 +37,7 @@ export function App() {
       setEngine(null);
       e.destroy();
     };
-  }, [setEngine, setSnapshot]);
+  }, [setEngine, setSnapshot, runId]);
 
   // keyboard command layer
   useEffect(() => {
@@ -120,6 +121,52 @@ export function App() {
             {snapshot?.paused ? 'PLANNING' : 'EXECUTING'}
           </b>
         </div>
+
+        {/* objective ribbon */}
+        {snapshot && snapshot.missionStatus === 'active' && (
+          <div style={styles.objective}>
+            {!snapshot.objectiveSecured ? (
+              <>
+                <div style={styles.objLine}>
+                  <span style={{ color: CSS.orange }}>◆ OBJECTIVE</span> · Secure the {snapshot.objectiveLabel}
+                </div>
+                <div style={styles.objBar} className="objbar">
+                  <i style={{ width: `${Math.round(snapshot.objectiveProgress * 100)}%` }} />
+                </div>
+              </>
+            ) : (
+              <div style={styles.objLine}>
+                <span style={{ color: CSS.cyan }}>✓ {snapshot.objectiveLabel} SECURED</span> · Fall back to the {snapshot.extractionLabel}
+              </div>
+            )}
+            <div style={styles.objSub}>
+              {snapshot.squadEffective}/{snapshot.squadTotal} EFFECTIVE
+            </div>
+          </div>
+        )}
+
+        {/* win / lose end screen */}
+        {snapshot && snapshot.missionStatus !== 'active' && (
+          <div style={styles.endOverlay}>
+            <div style={styles.endCard}>
+              <div style={{ ...styles.endTitle, color: snapshot.missionStatus === 'won' ? CSS.cyan : CSS.red }}>
+                {snapshot.missionStatus === 'won' ? 'MISSION COMPLETE' : 'MISSION FAILED'}
+              </div>
+              <div style={styles.endSub}>
+                {snapshot.missionStatus === 'won'
+                  ? `Bridge taken. ${snapshot.squadEffective}/${snapshot.squadTotal} extracted.`
+                  : 'The squad was lost aboard the Caspian.'}
+              </div>
+              <div style={styles.endStats}>
+                <span>TIME {clock}</span>
+                <span>{snapshot.squadTotal - snapshot.squadEffective} CASUALTIES</span>
+              </div>
+              <button className="btn go endbtn" onClick={() => setRunId((n) => n + 1)}>
+                ▶ NEW OPERATION
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* right console sidebar */}
@@ -263,6 +310,15 @@ const styles: Record<string, React.CSSProperties> = {
   clock: { color: CSS.ink, fontFamily: FONT_MONO, fontSize: 14, letterSpacing: 2 },
   host: { flex: 1, minHeight: 0, position: 'relative' },
   stateTag: { position: 'absolute', left: 16, bottom: 12, fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 1, background: 'rgba(5,8,13,.6)', padding: '4px 8px', borderRadius: 3, pointerEvents: 'none' },
+  objective: { position: 'absolute', top: 52, left: '50%', transform: 'translateX(-50%)', minWidth: 300, textAlign: 'center', background: 'rgba(5,8,13,.72)', border: `1px solid ${CSS.line}`, borderRadius: 4, padding: '7px 16px', pointerEvents: 'none' },
+  objLine: { fontFamily: FONT_MONO, fontSize: 12, letterSpacing: 1, color: CSS.ink },
+  objBar: { height: 4, background: '#22303f', borderRadius: 2, marginTop: 6, overflow: 'hidden' },
+  objSub: { fontFamily: FONT_MONO, fontSize: 10, letterSpacing: 2, color: CSS.muted, marginTop: 5 },
+  endOverlay: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(3,5,9,.72)', backdropFilter: 'blur(2px)', zIndex: 5 },
+  endCard: { textAlign: 'center', background: CSS.panel, border: `1px solid ${CSS.line}`, borderRadius: 6, padding: '26px 40px', boxShadow: '0 10px 40px rgba(0,0,0,.5)' },
+  endTitle: { fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 700, letterSpacing: 4 },
+  endSub: { fontFamily: FONT_MONO, fontSize: 12, color: CSS.ink, marginTop: 10 },
+  endStats: { display: 'flex', gap: 24, justifyContent: 'center', fontFamily: FONT_MONO, fontSize: 11, letterSpacing: 1, color: CSS.muted, margin: '14px 0 18px' },
   side: { width: 300, flex: 'none', background: CSS.panel, borderLeft: `1px solid ${CSS.line}`, display: 'flex', flexDirection: 'column' },
   sideHead: { padding: '12px 14px', borderBottom: `1px solid ${CSS.line}` },
   sideTitle: { color: CSS.cyan, letterSpacing: 3, fontWeight: 700, fontSize: 13 },
@@ -308,6 +364,8 @@ const globalCss = `
   .unit .sub { font-size: 11px; color: ${CSS.muted}; font-family: ${FONT_MONO}; }
   .unit .hpbar { height: 4px; background: #22303f; border-radius: 2px; margin-top: 3px; width: 150px; overflow: hidden; }
   .unit .hpbar > i { display: block; height: 100%; background: ${CSS.cyan}; }
+  .objbar > i, [data-objbar] > i { display: block; height: 100%; background: ${CSS.orange}; transition: width .1s linear; }
+  .endbtn { width: auto; margin: 0 auto; font-size: 14px; padding: 9px 22px; }
   .k { color: ${CSS.cyan}; font-family: ${FONT_MONO}; }
   .log.hit { color: ${CSS.red}; } .log.ok { color: ${CSS.cyan}; } .log.warn { color: ${CSS.orange}; }
   ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: #1b2a3c; border-radius: 4px; }

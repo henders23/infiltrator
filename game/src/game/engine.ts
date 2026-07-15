@@ -96,6 +96,14 @@ export interface Snapshot {
   attentionCount: number;
   units: UnitSnapshot[];
   log: string[];
+  // mission / objective
+  missionStatus: 'active' | 'won' | 'lost';
+  objectiveLabel: string;
+  objectiveSecured: boolean;
+  objectiveProgress: number; // 0..1
+  extractionLabel: string;
+  squadEffective: number; // alive & not downed
+  squadTotal: number;
 }
 
 interface UnitView {
@@ -121,6 +129,7 @@ export class Engine {
   private readonly doorsG = new Graphics(); // door state (redrawn each frame)
   private readonly hullG = new Graphics(); // pressure tint + breaches (redrawn each frame)
   private readonly fogG = new Graphics();
+  private readonly objectiveG = new Graphics(); // objective marker + extraction zone
   private readonly planG = new Graphics();
   private readonly unitLayer = new Container();
   private readonly fxG = new Graphics(); // tracers / muzzle / blasts (above units)
@@ -169,7 +178,7 @@ export class Engine {
 
   constructor(mission: Mission) {
     this.mission = mission;
-    this.world = new World(mission.grid, mission.units, mission.seed);
+    this.world = new World(mission.grid, mission.units, mission.seed, mission.goal);
   }
 
   async init(host: HTMLElement): Promise<void> {
@@ -182,7 +191,7 @@ export class Engine {
     });
     host.appendChild(this.app.canvas);
 
-    this.stage.addChild(this.deckSprite, this.deckG, this.doorsG, this.hullG, this.fogG, this.planG, this.unitLayer, this.fxG);
+    this.stage.addChild(this.deckSprite, this.deckG, this.doorsG, this.hullG, this.fogG, this.objectiveG, this.planG, this.unitLayer, this.fxG);
     this.app.stage.addChild(this.stage);
 
     try {
@@ -234,6 +243,7 @@ export class Engine {
     this.pumpAudio();
     this.checkContacts();
     this.checkCasualties();
+    this.checkMissionEnd();
     this.drawFrame();
     this.emitAcc += clamped;
     if (this.emitAcc >= EMIT_INTERVAL) {
@@ -316,6 +326,15 @@ export class Engine {
       this.pause();
       this.log.push(msg);
     }
+  }
+
+  /** Freeze the sim and surface the end screen the first time the mission resolves. */
+  private missionEnded = false;
+  private checkMissionEnd(): void {
+    if (this.missionEnded || this.world.status === 'active') return;
+    this.missionEnded = true;
+    this.paused = true;
+    this.emit();
   }
 
   // ── camera ────────────────────────────────────────────────────────────────
@@ -507,6 +526,7 @@ export class Engine {
     else this.pause();
   }
   play(): void {
+    if (this.world.status !== 'active') return; // mission over — no resuming
     this.paused = false;
     this.log.push('▶ Executing plan…');
     this.emit();
@@ -906,9 +926,64 @@ export class Engine {
     this.drawDoors();
     this.drawHull();
     this.drawFog();
+    this.drawObjective();
     this.drawPlan();
     this.drawUnits();
     this.drawFx();
+  }
+
+  /** The assault objective (a channel marker) and the extraction zone. */
+  private drawObjective(): void {
+    const g = this.objectiveG;
+    g.clear();
+    const goal = this.world.goal;
+    if (!goal) return;
+    const t = this.animClock;
+    const secured = this.world.objectiveSecured;
+
+    // ── objective marker ──
+    const o = goal.objective;
+    const ox = (o.x + 0.5) * TILE_PX;
+    const oy = (o.y + 0.5) * TILE_PX;
+    const r = o.radius * TILE_PX;
+    if (!secured) {
+      const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+      g.circle(ox, oy, r).stroke({ width: 1.5, color: COLORS.orange, alpha: 0.25 + 0.15 * pulse });
+      g.circle(ox, oy, r).fill({ color: COLORS.orange, alpha: 0.05 });
+      // channel progress arc
+      const frac = this.world.objectiveProgress / o.channel;
+      if (frac > 0) {
+        const a0 = -Math.PI / 2;
+        g.arc(ox, oy, r * 0.6, a0, a0 + Math.PI * 2 * frac).stroke({ width: 4, color: COLORS.orange, alpha: 0.95 });
+      }
+      // a diamond at the center
+      const d = TILE_PX * 0.34;
+      g.moveTo(ox, oy - d).lineTo(ox + d, oy).lineTo(ox, oy + d).lineTo(ox - d, oy).closePath()
+        .fill({ color: COLORS.orange, alpha: 0.5 + 0.3 * pulse });
+    } else {
+      // secured tick
+      const d = TILE_PX * 0.3;
+      g.circle(ox, oy, r * 0.5).stroke({ width: 2, color: COLORS.cyan, alpha: 0.7 });
+      g.moveTo(ox - d, oy).lineTo(ox - d * 0.2, oy + d * 0.7).lineTo(ox + d, oy - d * 0.7)
+        .stroke({ width: 3, color: COLORS.cyan, alpha: 0.95 });
+    }
+
+    // ── extraction zone (emphasised once the bridge is secured) ──
+    const ex = goal.extraction;
+    const x0 = ex.x * TILE_PX;
+    const y0 = ex.y * TILE_PX;
+    const w = ex.w * TILE_PX;
+    const h = ex.h * TILE_PX;
+    const active = secured;
+    const pulse = 0.5 + 0.5 * Math.sin(t * (active ? 4 : 2));
+    const col = active ? COLORS.cyan : COLORS.cyanDim;
+    g.rect(x0, y0, w, h).fill({ color: col, alpha: active ? 0.08 + 0.06 * pulse : 0.04 });
+    g.rect(x0, y0, w, h).stroke({ width: active ? 2 : 1.5, color: col, alpha: active ? 0.9 : 0.4 });
+    // corner ticks
+    const c = TILE_PX * 0.4;
+    for (const [cx, cy, sx, sy] of [[x0, y0, 1, 1], [x0 + w, y0, -1, 1], [x0, y0 + h, 1, -1], [x0 + w, y0 + h, -1, -1]] as const) {
+      g.moveTo(cx, cy + sy * c).lineTo(cx, cy).lineTo(cx + sx * c, cy).stroke({ width: 2, color: col, alpha: active ? 0.95 : 0.5 });
+    }
   }
 
   /** Pressure tint (venting → vacuum), hull breaches, and the pull toward them. */
@@ -1299,15 +1374,24 @@ export class Engine {
       armor: u.armor,
       status: this.statusOf(u),
     }));
+    const friendlies = this.world.units.filter((u) => u.faction === 'friendly');
+    const goal = this.world.goal;
     this.onSnapshot({
       paused: this.paused,
       time: this.world.time,
       missionName: this.mission.name,
       selectedId: this.selectedId,
       orderMode: this.orderMode,
-      attentionCount: this.world.units.filter((u) => u.faction === 'friendly' && u.alive && u.attention != null).length,
+      attentionCount: friendlies.filter((u) => u.alive && u.attention != null).length,
       units,
       log: this.log.slice(-8),
+      missionStatus: this.world.status,
+      objectiveLabel: goal?.objective.label ?? '',
+      objectiveSecured: this.world.objectiveSecured,
+      objectiveProgress: goal ? this.world.objectiveProgress / goal.objective.channel : 0,
+      extractionLabel: goal?.extraction.label ?? '',
+      squadEffective: friendlies.filter((u) => u.alive && !u.downed).length,
+      squadTotal: friendlies.length,
     });
   }
 

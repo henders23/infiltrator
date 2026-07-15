@@ -1,4 +1,4 @@
-import { holdOrder, Order } from './orders';
+import { holdOrder, Order, Vec } from './orders';
 
 export type Faction = 'friendly' | 'hostile';
 
@@ -53,6 +53,12 @@ export interface Unit {
   combat: CombatState;
   combatTimer: number;
   targetId: number | null;
+  /** Hostile AI: spawn tile it falls back to when the scent goes cold. */
+  home: Vec;
+  /** Hostile AI: last-known enemy/noise position to move to and check, or null. */
+  investigate: Vec | null;
+  /** Hostile AI: seconds until the path to `investigate`/`home` may be recomputed. */
+  repath: number;
 
   /** The unit's standing order. Persists across pauses until re-tasked. */
   order: Order;
@@ -89,6 +95,9 @@ export function makeUnit(init: Partial<Unit> & Pick<Unit, 'name' | 'faction'>): 
     combat: init.combat ?? 'idle',
     combatTimer: init.combatTimer ?? 0,
     targetId: init.targetId ?? null,
+    home: init.home ?? { ...(init.pos ?? { x: 0, y: 0 }) },
+    investigate: init.investigate ?? null,
+    repath: init.repath ?? 0,
     order: init.order ?? holdOrder(),
     attention: init.attention ?? null,
   };

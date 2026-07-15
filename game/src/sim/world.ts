@@ -10,10 +10,21 @@ import { coverMitigation } from './cover';
 import { damageAfterArmor, hitChance } from './combat';
 import { DOOR, Grid } from './grid';
 import { hasLineOfSight, tileDist } from './los';
-import { currentStep, GrenadeType, holdOrder, isPlanComplete, Step } from './orders';
+import { currentStep, GrenadeType, holdOrder, isPlanComplete, moveStep, Step } from './orders';
+import { findPath } from './pathfinding';
 import { makeRng, Rng } from './rng';
 import { isActive, isStunned, Unit } from './unit';
 import { weaponOf } from '../content/weapons';
+
+/** Win condition for an assault: channel an objective tile, then extract the squad. */
+export interface MissionGoal {
+  /** Tile to secure by standing within `radius` for `channel` seconds. */
+  objective: { x: number; y: number; radius: number; channel: number; label: string };
+  /** Tile rectangle the surviving squad must regroup in to win, once secured. */
+  extraction: { x: number; y: number; w: number; h: number; label: string };
+}
+
+export type MissionStatus = 'active' | 'won' | 'lost';
 
 export interface WorldEvent {
   time: number;
@@ -93,9 +104,17 @@ export class World {
   /** Tiles currently connected to a breach through open air (the active vent front). */
   readonly venting = new Set<number>();
 
-  constructor(grid: Grid, units: Unit[], seed = 1) {
+  /** Assault objective/extraction (optional — a bare World has no win condition). */
+  readonly goal?: MissionGoal;
+  /** Seconds channelled on the objective so far (0..goal.objective.channel). */
+  objectiveProgress = 0;
+  objectiveSecured = false;
+  status: MissionStatus = 'active';
+
+  constructor(grid: Grid, units: Unit[], seed = 1, goal?: MissionGoal) {
     this.grid = grid;
     this.units = units;
+    this.goal = goal;
     this.rng = makeRng(seed);
     this.pressure = new Float32Array(grid.width * grid.height).fill(1);
     // open space holds no air — it's a permanent vacuum sink for diffusion
@@ -140,11 +159,82 @@ export class World {
       if (isActive(u) && u.faction === 'friendly') this.advance(u, dt);
     }
     this.updateAI(dt);
+    this.updateHostileMovement(dt);
     this.runCombat(dt);
     this.updateHull(dt);
     this.decayAndBleed(dt);
+    this.updateMission(dt);
     this.prune();
     this.revealFog();
+  }
+
+  // ── hostile movement (minimal AI: hunt the noise, then fall back) ────────────
+  /** Roused hostiles with no current shot move to investigate the last-known enemy
+   *  position (or noise), then return home. A hostile that CAN shoot holds and fires,
+   *  so standing firefights are unchanged — they only leave cover to chase/search. */
+  private updateHostileMovement(dt: number): void {
+    for (const u of this.units) {
+      if (!isActive(u) || u.faction !== 'hostile') continue;
+      if (u.combat === 'idle') continue; // not yet roused — hold position (stealth intact)
+      if (isStunned(u, this.time) || u.suppressedUntil > this.time) continue; // stunned/pinned
+
+      const shootable = this.nearestVisibleEnemy(u);
+      if (shootable) {
+        // eyes on: remember where, but hold ground and let runCombat do the firing
+        u.investigate = { x: shootable.pos.x, y: shootable.pos.y };
+        u.order = holdOrder();
+        continue;
+      }
+
+      // no shot — advance on the last-known spot, then peel back to the spawn
+      const dest = u.investigate ?? u.home;
+      if (tileDist(u.pos.x, u.pos.y, dest.x, dest.y) < 0.9) {
+        u.investigate = null; // reached it; next tick heads home (or holds there)
+        u.order = holdOrder();
+        continue;
+      }
+      u.repath -= dt;
+      const cur = currentStep(u.order);
+      const moving = cur.kind === 'move' && cur.index < cur.path.length;
+      if (!moving || u.repath <= 0) {
+        const path = findPath(this.grid, Math.floor(u.pos.x), Math.floor(u.pos.y), Math.floor(dest.x), Math.floor(dest.y));
+        u.order = path && path.length ? { steps: [moveStep(path.map((t) => ({ x: t.x + 0.5, y: t.y + 0.5 })))], step: 0 } : holdOrder();
+        u.repath = 0.5;
+      }
+      const s = currentStep(u.order);
+      if (s.kind === 'move') this.runMove(u, s, dt);
+    }
+  }
+
+  // ── mission win/lose ─────────────────────────────────────────────────────────
+  private updateMission(dt: number): void {
+    if (!this.goal || this.status !== 'active') return;
+    const active = this.units.filter((u) => u.faction === 'friendly' && isActive(u));
+    if (active.length === 0) {
+      this.status = 'lost';
+      this.events.push({ time: this.time, kind: 'info', text: 'Squad combat-ineffective. Mission failed.' });
+      return;
+    }
+    const o = this.goal.objective;
+    if (!this.objectiveSecured) {
+      const held = active.some((u) => tileDist(u.pos.x, u.pos.y, o.x + 0.5, o.y + 0.5) <= o.radius);
+      if (held) {
+        this.objectiveProgress = Math.min(o.channel, this.objectiveProgress + dt);
+        if (this.objectiveProgress >= o.channel) {
+          this.objectiveSecured = true;
+          this.events.push({ time: this.time, kind: 'info', text: `${o.label} secured — fall back to extraction.` });
+        }
+      }
+    } else {
+      const ex = this.goal.extraction;
+      const allOut = active.every(
+        (u) => u.pos.x >= ex.x && u.pos.x < ex.x + ex.w && u.pos.y >= ex.y && u.pos.y < ex.y + ex.h,
+      );
+      if (allOut) {
+        this.status = 'won';
+        this.events.push({ time: this.time, kind: 'info', text: 'All effectives extracted. Mission complete.' });
+      }
+    }
   }
 
   // ── plan execution (step machine) ───────────────────────────────────────────
@@ -457,9 +547,13 @@ export class World {
   private makeNoise(x: number, y: number, radius = NOISE_RADIUS): void {
     for (const h of this.units) {
       if (!isActive(h) || h.faction !== 'hostile') continue;
-      if (h.combat === 'idle' && tileDist(h.pos.x, h.pos.y, x, y) <= radius) {
-        h.combat = 'alert';
-        h.combatTimer = AI_REACTION;
+      if (tileDist(h.pos.x, h.pos.y, x, y) <= radius) {
+        if (h.combat === 'idle') {
+          h.combat = 'alert';
+          h.combatTimer = AI_REACTION;
+        }
+        // rouse them toward the racket — investigate the source if not already fighting
+        h.investigate = { x, y };
       }
     }
   }
